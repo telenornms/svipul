@@ -21,12 +21,11 @@
  * 02110-1301  USA
  */
 
-
 package tpoll
 
 import (
 	"github.com/gosnmp/gosnmp"
-	)
+)
 
 // Node is a rendered SMI node, e.g.: the result of a lookup. Usually
 // handled by the smierte sub-package, but needs to be defined up here to
@@ -43,5 +42,5 @@ type Node struct {
 // and session.Session type implements it. Since it's tied to both a Node
 // and a gosnmp.SnmpPDU type, it's rather strongly connected to SNMP atm.
 type Walker interface {
-	BulkWalk(node Node, cb func(pdu gosnmp.SnmpPDU) error)  error
+	BulkWalk(node Node, cb func(pdu gosnmp.SnmpPDU) error) error
 }

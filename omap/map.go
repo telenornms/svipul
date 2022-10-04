@@ -25,10 +25,10 @@ package omap
 
 import (
 	"fmt"
-	"strconv"
+	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/tpoll"
 	"github.com/telenornms/tpoll/smierte"
-	"github.com/gosnmp/gosnmp"
+	"strconv"
 )
 
 // OMap is a two-way map of index to name, the typical case is ifIndex to
@@ -36,10 +36,10 @@ import (
 type OMap struct {
 	IdxToName map[int]string
 	NameToIdx map[string]int
-	Oid	  tpoll.Node	// OID used to build the map, e.g.: ifName
+	Oid       tpoll.Node // OID used to build the map, e.g.: ifName
 }
 
-func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap,error) {
+func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	m := &OMap{}
 	var err error
 	m.IdxToName = make(map[int]string)
@@ -49,7 +49,7 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap,error) {
 		return nil, fmt.Errorf("lookup of oid %s failed: %w", oid, err)
 	}
 	err = w.BulkWalk(m.Oid, m.walkCB)
-	return m,err
+	return m, err
 }
 
 func (m *OMap) walkCB(pdu gosnmp.SnmpPDU) error {

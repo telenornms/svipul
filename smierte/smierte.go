@@ -49,7 +49,6 @@ type Config struct {
 	Paths   []string // Paths to the modules
 }
 
-
 // cache is an internal OID-cache for Nodes, to avoid expensive SMI-lookups
 // for what is most likely very repetitive lookups. So far, extremely
 // simple with no LRU or anything.
@@ -58,7 +57,7 @@ var cache sync.Map
 // Init loads MIB files from disk and a hard-coded list of modules
 func (c *Config) Init() error {
 	gosmi.Init()
-	
+
 	for _, path := range c.Paths {
 		tpoll.Logf("mib path added: %s", path)
 		gosmi.AppendPath(path)

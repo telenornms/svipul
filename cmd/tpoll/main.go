@@ -27,9 +27,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
-	"fmt"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/tpoll"
@@ -39,8 +39,8 @@ import (
 )
 
 type Task struct {
-	OMap	*omap.OMap
-	Mib	*smierte.Config
+	OMap *omap.OMap
+	Mib  *smierte.Config
 }
 
 func main() {

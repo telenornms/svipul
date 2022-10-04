@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/telenornms/tpoll"
 	"github.com/gosnmp/gosnmp"
+	"github.com/telenornms/tpoll"
 )
 
 type Session struct {
@@ -38,7 +38,7 @@ func (s *Session) Finalize() {
 	s.S.Conn.Close()
 }
 
-func (s *Session) BulkWalk(node tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error)  error {
+func (s *Session) BulkWalk(node tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
 	return s.S.BulkWalk(node.Numeric, cb)
 }
 
@@ -52,5 +52,3 @@ func NewSession(target string) (*Session, error) {
 	}
 	return &s, nil
 }
-
-
