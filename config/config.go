@@ -22,6 +22,7 @@
  */
 
 package config
+
 /*
 Package config provides a basis for configuring the tpoller.
 
@@ -31,6 +32,5 @@ a database on demand, so far, this package is extremely trivial.
 Oh, and also, so far, it doesn't actually do anything but provide
 hard-coded defaults.
 */
-
 
 var Debug = true

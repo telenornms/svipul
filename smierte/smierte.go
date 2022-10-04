@@ -22,6 +22,7 @@
  */
 
 package smierte
+
 /*
 Package smierte handles loading MIB files and modules (SMI)-stuff. The name
 is a play on SMI and smerte (pain), because this is such a painful process.
@@ -35,26 +36,24 @@ import (
 	"regexp"
 	"sync"
 
-	"github.com/telenornms/tpoll"
 	"github.com/sleepinggenius2/gosmi"
 	"github.com/sleepinggenius2/gosmi/types"
+	"github.com/telenornms/tpoll"
 )
-
 
 // Config provides configuration basis for the smierte package, and
 // everything is dealt with on that basis, even if gosmi is
 // technically mostly working on a global scope.
 type Config struct {
 	Modules []string // SMI modules to load
-	Paths []string // Paths to the modules
+	Paths   []string // Paths to the modules
 }
-
 
 // Node is a rendered SMI node, e.g.: the result of a lookup.
 type Node struct {
-	Key	string	// original input key, kept for posterity
-	Name	string
-	Numeric	string // I KNOW
+	Key       string // original input key, kept for posterity
+	Name      string
+	Numeric   string // I KNOW
 	Qualified string
 }
 
@@ -77,10 +76,9 @@ func (c *Config) Init() error {
 	return nil
 }
 
-
 func (c *Config) Lookup(item string) (Node, error) {
 	if chit, ok := cache.Load(item); ok {
-		cast,_ := chit.(*Node)
+		cast, _ := chit.(*Node)
 		tpoll.Debugf("Cache hit")
 		return *cast, nil
 	}
@@ -91,11 +89,11 @@ func (c *Config) Lookup(item string) (Node, error) {
 	// this cache.
 	cache.Store(item, &ret)
 	ret.Key = item
-	match,_ := regexp.Match("^[0-9.]+$", []byte(item))
+	match, _ := regexp.Match("^[0-9.]+$", []byte(item))
 	var err error
 	var n gosmi.SmiNode
 	if match {
-		oid,err := types.OidFromString(item)
+		oid, err := types.OidFromString(item)
 		if err != nil {
 			return ret, fmt.Errorf("unable to resolve OID to string: %w", err)
 		}

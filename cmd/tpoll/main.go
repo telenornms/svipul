@@ -29,32 +29,32 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 	"strconv"
+	"time"
 
 	"github.com/gosnmp/gosnmp"
-	"github.com/telenornms/tpoll/smierte"
 	"github.com/telenornms/tpoll"
+	"github.com/telenornms/tpoll/smierte"
 )
 
 type Session struct {
-	S	*gosnmp.GoSNMP
-	Target	string
-	Community	string
-	Mib	*smierte.Config
-	Ifm	IFMap
+	S         *gosnmp.GoSNMP
+	Target    string
+	Community string
+	Mib       *smierte.Config
+	Ifm       IFMap
 }
 
 func (s *Session) init() error {
 	gs := gosnmp.GoSNMP{
-		Port: 161,
-		Transport: "udp",
-		Community: s.Community,
-		Version: gosnmp.Version2c,
-		Timeout: time.Duration(3) * time.Second,
-		Retries: 3,
+		Port:               161,
+		Transport:          "udp",
+		Community:          s.Community,
+		Version:            gosnmp.Version2c,
+		Timeout:            time.Duration(3) * time.Second,
+		Retries:            3,
 		ExponentialTimeout: true,
-		MaxOids: gosnmp.MaxOids,
+		MaxOids:            gosnmp.MaxOids,
 	}
 	gs.Target = s.Target
 	err := gs.Connect()
@@ -80,7 +80,6 @@ func NewSession(target string) (*Session, error) {
 	return &s, nil
 }
 
-
 func (s *Session) BulkWalk(oid string) error {
 	cb := func(pdu gosnmp.SnmpPDU) error {
 		return s.printValue(pdu)
@@ -92,15 +91,15 @@ func (s *Session) BulkWalk(oid string) error {
 func (s *Session) printValue(pdu gosnmp.SnmpPDU) error {
 	var name = pdu.Name
 	if s.Mib != nil {
-		n,err := s.Mib.Lookup(pdu.Name)
+		n, err := s.Mib.Lookup(pdu.Name)
 		if err != nil {
 			tpoll.Logf("lookup failed: %s", err)
 		} else {
 			trailer := pdu.Name[len(n.Numeric)+1:]
 			if len(trailer) > 1 {
-				idxN64,_ := strconv.ParseInt(trailer[1:],10,32)
+				idxN64, _ := strconv.ParseInt(trailer[1:], 10, 32)
 				idx := int(idxN64)
-				
+
 				if s.Ifm.IdxToName[idx] != "" {
 					trailer = fmt.Sprintf(".%s", s.Ifm.IdxToName[idx])
 				}
@@ -114,7 +113,7 @@ func (s *Session) printValue(pdu gosnmp.SnmpPDU) error {
 		b := pdu.Value.([]byte)
 		tpoll.Logf("%s = STRING: %s\n", name, string(b))
 	default:
-		tpoll.Logf("%s = TYPE %d: %d\n",name, pdu.Type, gosnmp.ToBigInt(pdu.Value))
+		tpoll.Logf("%s = TYPE %d: %d\n", name, pdu.Type, gosnmp.ToBigInt(pdu.Value))
 	}
 	return nil
 }
@@ -124,7 +123,7 @@ type IFMap struct {
 	NameToIdx map[string]int
 }
 
-func BuildIFMap(s *Session) (error) {
+func BuildIFMap(s *Session) error {
 	var ifm IFMap
 	ifm.IdxToName = make(map[int]string)
 	ifm.NameToIdx = make(map[string]int)
@@ -134,6 +133,7 @@ func BuildIFMap(s *Session) (error) {
 }
 
 const ifName = ".1.3.6.1.2.1.31.1.1.1.1"
+
 func (ifm *IFMap) Populate(s *Session) error {
 	return s.S.BulkWalk(ifName, ifm.walkCB)
 }
@@ -141,7 +141,7 @@ func (ifm *IFMap) Populate(s *Session) error {
 func (ifm *IFMap) walkCB(pdu gosnmp.SnmpPDU) error {
 	idx := pdu.Name[len(ifName)+1:]
 	ifN := string(pdu.Value.([]byte))
-	idxN64,err := strconv.ParseInt(idx,10,32)
+	idxN64, err := strconv.ParseInt(idx, 10, 32)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ func (ifm *IFMap) walkCB(pdu gosnmp.SnmpPDU) error {
 	ifm.NameToIdx[ifN] = idxN
 	return nil
 }
-	
+
 func main() {
 	mib := &smierte.Config{}
 	mib.Modules = []string{
@@ -175,7 +175,7 @@ func main() {
 		tpoll.Fatalf("failed to build IF-map: %s", err)
 	}
 
-	m,err := mib.Lookup(os.Args[1])
+	m, err := mib.Lookup(os.Args[1])
 	if err != nil {
 		tpoll.Fatalf("unable to lookup mib/oid/thingy: %s", err)
 	}
@@ -184,4 +184,3 @@ func main() {
 		tpoll.Fatalf("Walk Failed: %v\n", err)
 	}
 }
-

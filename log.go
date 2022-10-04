@@ -22,7 +22,6 @@
  */
 package tpoll
 
-
 /*
 log.go is largely a wrapper around log for now, mainly so I can start doing
 regular calls to log without having to worry about future-proofing it.
@@ -35,10 +34,9 @@ when it's disabled.
 */
 
 import (
-"log"
 	"github.com/telenornms/tpoll/config"
+	"log"
 )
-
 
 func Log(v ...any) {
 	log.Print(v...)
@@ -49,7 +47,7 @@ func Logf(format string, v ...any) {
 }
 
 func Logln(v ...any) {
-	log.Println(v)
+	log.Println(v...)
 }
 
 func Fatal(v ...any) {
@@ -61,7 +59,7 @@ func Fatalf(format string, v ...any) {
 }
 
 func Fatalln(v ...any) {
-	log.Fatalln(v)
+	log.Fatalln(v...)
 }
 
 func Debug(v ...any) {
