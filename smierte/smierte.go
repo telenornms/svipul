@@ -1,22 +1,56 @@
+/*
+ * tpoll smi-pain
+ *
+ * Copyright (c) 2022 Telenor Norge AS
+ * Author(s):
+ *  - Kristian Lyngstøl <kly@kly.no>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301  USA
+ */
+
 package smierte
+/*
+Package smierte handles loading MIB files and modules (SMI)-stuff. The name
+is a play on SMI and smerte (pain), because this is such a painful process.
+
+While this is based on gosmi, we should try to hide as much as that as
+possible because it's not unlikely that it'll be switched.
+*/
 
 import (
 	"fmt"
 	"regexp"
 	"sync"
 
+	"github.com/telenornms/tpoll"
 	"github.com/sleepinggenius2/gosmi"
 	"github.com/sleepinggenius2/gosmi/types"
 )
 
 
+// Config provides configuration basis for the smierte package, and
+// everything is dealt with on that basis, even if gosmi is
+// technically mostly working on a global scope.
 type Config struct {
 	Modules []string // SMI modules to load
 	Paths []string // Paths to the modules
 }
 
 
-// Node is the rendered 
+// Node is a rendered SMI node, e.g.: the result of a lookup.
 type Node struct {
 	Key	string	// original input key, kept for posterity
 	Name	string
@@ -30,32 +64,24 @@ type Node struct {
 var cache sync.Map
 
 // Init loads MIB files from disk and a hard-coded list of modules
-func (c *Config) Init() {
+func (c *Config) Init() error {
 	gosmi.Init()
 
-	modules := []string {
-		"SNMPv2-MIB",
-		"ENTITY-MIB",
-		"IF-MIB",
-		"IP-MIB",
-		"IP-FORWARD-MIB"}
-
-	for i, module := range modules {
+	for _, module := range c.Modules {
 		moduleName, err := gosmi.LoadModule(module)
 		if err != nil {
-			fmt.Printf("Init Error: %s\n", err)
-			return
+			return fmt.Errorf("module load failed: %w", err)
 		}
-		fmt.Printf("Loaded module %s\n", moduleName)
-		modules[i] = moduleName
+		tpoll.Logf("Loaded SMI module %s\n", moduleName)
 	}
+	return nil
 }
 
 
 func (c *Config) Lookup(item string) (Node, error) {
 	if chit, ok := cache.Load(item); ok {
 		cast,_ := chit.(*Node)
-		fmt.Printf("Cache hit\n")
+		tpoll.Debugf("Cache hit")
 		return *cast, nil
 	}
 	var ret Node
@@ -83,9 +109,5 @@ func (c *Config) Lookup(item string) (Node, error) {
 	ret.Numeric = n.RenderNumeric()
 	ret.Name = n.Render(types.RenderName)
 	ret.Qualified = n.RenderQualified()
-	for i := types.Render(1); i<7; i++ {
-		fmt.Printf("render %d: %s\n", i, n.Render(i))
-	}
-	fmt.Printf("noden: %#v\n", n.Node)
 	return ret, nil
 }
