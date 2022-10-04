@@ -1,5 +1,5 @@
 /*
- * tpoll log-wrappers
+ * tpoll documentation-dummy
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -21,27 +21,13 @@
  * 02110-1301  USA
  */
 
+/*
+Package tpoll is an advanced library and toolset for polling large amounts
+of network devices, initially with SNMP, but conceptually with any relevant
+protocol.
 
+It works, or will work, through a central work-distribution database/api,
+and multiple, largely independent pollers. The results are reported using
+Skogul.
+*/
 package tpoll
-
-import (
-	"github.com/gosnmp/gosnmp"
-	)
-
-// Node is a rendered SMI node, e.g.: the result of a lookup. Usually
-// handled by the smierte sub-package, but needs to be defined up here to
-// avoid circular dependencies
-type Node struct {
-	Key       string // original input key, kept for posterity
-	Name      string
-	Numeric   string // I KNOW
-	Qualified string
-}
-
-// Walker is an interface for performing a BulkWalk, without having to
-// worry about the underlying session. Today, only the session-subpackage
-// and session.Session type implements it. Since it's tied to both a Node
-// and a gosnmp.SnmpPDU type, it's rather strongly connected to SNMP atm.
-type Walker interface {
-	BulkWalk(node Node, cb func(pdu gosnmp.SnmpPDU) error)  error
-}
