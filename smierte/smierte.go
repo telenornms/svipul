@@ -49,13 +49,6 @@ type Config struct {
 	Paths   []string // Paths to the modules
 }
 
-// Node is a rendered SMI node, e.g.: the result of a lookup.
-type Node struct {
-	Key       string // original input key, kept for posterity
-	Name      string
-	Numeric   string // I KNOW
-	Qualified string
-}
 
 // cache is an internal OID-cache for Nodes, to avoid expensive SMI-lookups
 // for what is most likely very repetitive lookups. So far, extremely
@@ -65,7 +58,11 @@ var cache sync.Map
 // Init loads MIB files from disk and a hard-coded list of modules
 func (c *Config) Init() error {
 	gosmi.Init()
-
+	
+	for _, path := range c.Paths {
+		tpoll.Logf("mib path added: %s", path)
+		gosmi.AppendPath(path)
+	}
 	for _, module := range c.Modules {
 		moduleName, err := gosmi.LoadModule(module)
 		if err != nil {
@@ -76,13 +73,13 @@ func (c *Config) Init() error {
 	return nil
 }
 
-func (c *Config) Lookup(item string) (Node, error) {
+func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	if chit, ok := cache.Load(item); ok {
-		cast, _ := chit.(*Node)
+		cast, _ := chit.(*tpoll.Node)
 		tpoll.Debugf("Cache hit")
 		return *cast, nil
 	}
-	var ret Node
+	var ret tpoll.Node
 	// We set this early because there's currently no reason to assume
 	// a cache miss will magically become a cache hit later.
 	// XXX: When we DO deal with internal reloading, we need to nuke
