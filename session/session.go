@@ -2,8 +2,8 @@ package session
 
 import (
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/tpoll"
@@ -40,16 +40,17 @@ func (s *Session) Finalize() {
 }
 
 func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
-	oids := make([]string,0, len(nodes))
-	originals := make([]string,0, len(nodes))
-	for _,a := range nodes {
+	oids := make([]string, 0, len(nodes))
+	originals := make([]string, 0, len(nodes))
+	for _, a := range nodes {
 		numeric := fmt.Sprintf(".%s", a.Numeric)
 		oids = append(oids, numeric)
 		originals = append(originals, numeric)
 	}
 	iterations := 0
 	misses := 0
-	for ; len(oids) > 0; iterations++{
+	hits := 0
+	for ; len(oids) > 0; iterations++ {
 		revmap := make(map[string]string)
 		result, err := s.S.GetBulk(oids, 0, 3)
 		oids = make([]string, 0, 5)
@@ -78,13 +79,14 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error
 				if err != nil {
 					return fmt.Errorf("callback returned error: %w", err)
 				}
+				hits++
 			}
 		}
-		for _,r := range revmap {
+		for _, r := range revmap {
 			oids = append(oids, r)
 		}
 	}
-	tpoll.Debugf("BulkWalk for %d oids done in %d iterations with %d misses", len(nodes), iterations, misses)
+	tpoll.Debugf("BulkWalk for %d oids done in %d iterations with %d misses and %d hits", len(nodes), iterations, misses, hits)
 	return nil
 }
 

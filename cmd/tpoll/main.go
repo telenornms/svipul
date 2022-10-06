@@ -40,9 +40,9 @@ import (
 )
 
 type Task struct {
-	OMap *omap.OMap
-	Mib  *smierte.Config
-	Metric	skogul.Metric	
+	OMap   *omap.OMap
+	Mib    *smierte.Config
+	Metric skogul.Metric
 }
 
 func main() {
@@ -99,7 +99,7 @@ func main() {
 	c := skogul.Container{}
 	c.Metrics = append(c.Metrics, &t.Metric)
 
-	err = config.Handlers["tpoll"].Handler.TransformAndSend(&c)	
+	err = config.Handlers["tpoll"].Handler.TransformAndSend(&c)
 	if err != nil {
 		tpoll.Fatalf("sending failed: %v", err)
 	}
