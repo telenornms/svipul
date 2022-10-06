@@ -48,7 +48,7 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	if err != nil {
 		return nil, fmt.Errorf("lookup of oid %s failed: %w", oid, err)
 	}
-	err = w.BulkWalk(m.Oid, m.walkCB)
+	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
 	return m, err
 }
 

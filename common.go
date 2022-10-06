@@ -42,5 +42,5 @@ type Node struct {
 // and session.Session type implements it. Since it's tied to both a Node
 // and a gosnmp.SnmpPDU type, it's rather strongly connected to SNMP atm.
 type Walker interface {
-	BulkWalk(node Node, cb func(pdu gosnmp.SnmpPDU) error) error
+	BulkWalk(node []Node, cb func(pdu gosnmp.SnmpPDU) error) error
 }

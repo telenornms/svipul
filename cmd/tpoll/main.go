@@ -76,9 +76,19 @@ func main() {
 		tpoll.Fatalf("failed to build IF-map: %s", err)
 	}
 
-	m, err := mib.Lookup(os.Args[1])
-	if err != nil {
-		tpoll.Fatalf("unable to lookup mib/oid/thingy: %s", err)
+	m := make([]tpoll.Node, 0, len(os.Args)-1)
+	for idx, arg := range os.Args {
+		if idx == 0 {
+			continue
+		}
+		nym, err := mib.Lookup(arg)
+		if err != nil {
+			tpoll.Fatalf("unable to lookup mib/oid/thingy %s: %s", arg, err)
+		}
+		m = append(m, nym)
+	}
+	if len(m) < 1 {
+		tpoll.Fatalf("no oids to look up?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
 	t.Metric.Data = make(map[string]interface{})
@@ -103,9 +113,9 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 		if err != nil {
 			tpoll.Logf("lookup failed: %s", err)
 		} else {
-			trailer := pdu.Name[len(n.Numeric)+1:]
-			if len(trailer) > 1 {
-				idxN64, _ := strconv.ParseInt(trailer[1:], 10, 32)
+			trailer := pdu.Name[len(n.Numeric)+1:][1:]
+			if len(trailer) > 0 {
+				idxN64, _ := strconv.ParseInt(trailer, 10, 32)
 				idx := int(idxN64)
 
 				if t.OMap.IdxToName[idx] != "" {
