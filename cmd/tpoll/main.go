@@ -27,11 +27,12 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
 	"github.com/gosnmp/gosnmp"
+	"github.com/telenornms/skogul"
+	"github.com/telenornms/skogul/config"
 	"github.com/telenornms/tpoll"
 	"github.com/telenornms/tpoll/omap"
 	"github.com/telenornms/tpoll/session"
@@ -41,6 +42,7 @@ import (
 type Task struct {
 	OMap *omap.OMap
 	Mib  *smierte.Config
+	Metric	skogul.Metric	
 }
 
 func main() {
@@ -56,6 +58,11 @@ func main() {
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
 	}
+	config, err := config.Path("skogul")
+	if err != nil {
+		tpoll.Fatalf("Failed to configure Skogul: %v", err)
+	}
+
 	s, err := session.NewSession("192.168.122.41")
 	if err != nil {
 		tpoll.Fatalf("failed to start session: %s", err)
@@ -73,14 +80,24 @@ func main() {
 	if err != nil {
 		tpoll.Fatalf("unable to lookup mib/oid/thingy: %s", err)
 	}
+	t.Metric.Metadata = make(map[string]interface{})
+	t.Metric.Data = make(map[string]interface{})
 	err = s.BulkWalk(m, t.bwCB)
 	if err != nil {
 		tpoll.Fatalf("Walk Failed: %v\n", err)
+	}
+	c := skogul.Container{}
+	c.Metrics = append(c.Metrics, &t.Metric)
+
+	err = config.Handlers["tpoll"].Handler.TransformAndSend(&c)	
+	if err != nil {
+		tpoll.Fatalf("sending failed: %v", err)
 	}
 }
 
 func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	var name = pdu.Name
+	var element = ""
 	if t.Mib != nil {
 		n, err := t.Mib.Lookup(pdu.Name)
 		if err != nil {
@@ -92,19 +109,23 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 				idx := int(idxN64)
 
 				if t.OMap.IdxToName[idx] != "" {
-					trailer = fmt.Sprintf(".%s", t.OMap.IdxToName[idx])
+					trailer = t.OMap.IdxToName[idx]
 				}
 			}
-			name = fmt.Sprintf("%s%s", n.Name, trailer)
+			name = n.Name
+			element = trailer
 		}
 	}
 
+	if t.Metric.Data[element] == nil {
+		t.Metric.Data[element] = make(map[string]interface{})
+	}
 	switch pdu.Type {
 	case gosnmp.OctetString:
 		b := pdu.Value.([]byte)
-		tpoll.Logf("%s = STRING: %s\n", name, string(b))
+		(t.Metric.Data[element].(map[string]interface{}))[name] = string(b)
 	default:
-		tpoll.Logf("%s = TYPE %d: %d\n", name, pdu.Type, gosnmp.ToBigInt(pdu.Value))
+		(t.Metric.Data[element].(map[string]interface{}))[name] = gosnmp.ToBigInt(pdu.Value)
 	}
 	return nil
 }

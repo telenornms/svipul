@@ -1,0 +1,9 @@
+{
+	"handlers": {
+		"tpoll": {
+			"sender": "print",
+			"transformers": ["now"],
+			"parser": "json"
+		}
+	}
+}
