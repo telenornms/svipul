@@ -11,12 +11,9 @@ all: tpoll
 
 check: test fmtcheck vet
 
-# Can't for the life of me remember where this came from and it's seemingly
-# gone now, so removed from check.
-lint:
-	@echo 🐉 Linting code
-	@golint -set_exit_status
-
+mibs:
+	@echo ✊ Grabbing mibs
+	@tools/get_mibs.sh
 vet:
 	@echo 🔬 Vetting code
 	@go vet ./...

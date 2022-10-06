@@ -53,7 +53,7 @@ func main() {
 		"IF-MIB",
 		"IP-MIB",
 		"IP-FORWARD-MIB"}
-	mib.Paths = []string{"mibs/std/"}
+	mib.Paths = []string{"mibs/modules/"}
 	err := mib.Init()
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
