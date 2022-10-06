@@ -32,8 +32,9 @@ import (
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/skogul"
-	"github.com/telenornms/skogul/config"
+	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/tpoll"
+	"github.com/telenornms/tpoll/config"
 	"github.com/telenornms/tpoll/omap"
 	"github.com/telenornms/tpoll/session"
 	"github.com/telenornms/tpoll/smierte"
@@ -47,18 +48,13 @@ type Task struct {
 
 func main() {
 	mib := &smierte.Config{}
-	mib.Modules = []string{
-		"SNMPv2-MIB",
-		"ENTITY-MIB",
-		"IF-MIB",
-		"IP-MIB",
-		"IP-FORWARD-MIB"}
-	mib.Paths = []string{"mibs/modules/"}
+	mib.Paths = config.MibPaths
+	mib.Modules = config.MibModules
 	err := mib.Init()
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
 	}
-	config, err := config.Path("skogul")
+	sconfig,err := sconfig.Path("skogul")
 	if err != nil {
 		tpoll.Fatalf("Failed to configure Skogul: %v", err)
 	}
@@ -91,6 +87,8 @@ func main() {
 		tpoll.Fatalf("no oids to look up?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
+	t.Metric.Metadata["oids"] = os.Args[1:]
+	t.Metric.Metadata["host"] = "192.168.122.41"
 	t.Metric.Data = make(map[string]interface{})
 	err = s.BulkWalk(m, t.bwCB)
 	if err != nil {
@@ -99,7 +97,7 @@ func main() {
 	c := skogul.Container{}
 	c.Metrics = append(c.Metrics, &t.Metric)
 
-	err = config.Handlers["tpoll"].Handler.TransformAndSend(&c)
+	err = sconfig.Handlers["tpoll"].Handler.TransformAndSend(&c)
 	if err != nil {
 		tpoll.Fatalf("sending failed: %v", err)
 	}
@@ -134,8 +132,12 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	case gosnmp.OctetString:
 		b := pdu.Value.([]byte)
 		(t.Metric.Data[element].(map[string]interface{}))[name] = string(b)
+	case gosnmp.Boolean:
+		b := pdu.Value.(bool)
+		(t.Metric.Data[element].(map[string]interface{}))[name] = b
 	default:
 		(t.Metric.Data[element].(map[string]interface{}))[name] = gosnmp.ToBigInt(pdu.Value)
+		//(t.Metric.Data[element].(map[string]interface{}))[name+"Type"] = fmt.Sprintf("0x%02X", byte(pdu.Type))
 	}
 	return nil
 }
