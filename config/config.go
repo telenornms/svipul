@@ -36,8 +36,8 @@ hard-coded defaults.
 var Debug = true
 var MibPaths = []string{"mibs/modules"}
 var MibModules = []string{
-		"SNMPv2-MIB",
-		"ENTITY-MIB",
-		"IF-MIB",
-		"IP-MIB",
-		"IP-FORWARD-MIB"}
+	"SNMPv2-MIB",
+	"ENTITY-MIB",
+	"IF-MIB",
+	"IP-MIB",
+	"IP-FORWARD-MIB"}

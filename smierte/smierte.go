@@ -75,7 +75,6 @@ func (c *Config) Init() error {
 func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	if chit, ok := cache.Load(item); ok {
 		cast, _ := chit.(*tpoll.Node)
-		tpoll.Debugf("Cache hit")
 		return *cast, nil
 	}
 	var ret tpoll.Node

@@ -27,8 +27,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/skogul"
@@ -46,61 +48,84 @@ type Task struct {
 	Metric skogul.Metric
 }
 
-func main() {
+type Engine struct {
+	Skogul *sconfig.Config
+	Mib    *smierte.Config
+	OMap   map[string]*omap.OMap
+}
+
+func (e *Engine) Init(sc string) error {
+	var err error
+	e.Skogul, err = sconfig.Path(sc)
+	e.OMap = make(map[string]*omap.OMap)
+	if err != nil {
+		return fmt.Errorf("unable to initilize engine")
+	}
 	mib := &smierte.Config{}
 	mib.Paths = config.MibPaths
 	mib.Modules = config.MibModules
-	err := mib.Init()
+	err = mib.Init()
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
 	}
-	sconfig,err := sconfig.Path("skogul")
-	if err != nil {
-		tpoll.Fatalf("Failed to configure Skogul: %v", err)
-	}
+	e.Mib = mib
+	return nil
+}
 
-	s, err := session.NewSession("192.168.122.41")
-	if err != nil {
-		tpoll.Fatalf("failed to start session: %s", err)
+func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, error) {
+	var err error
+	if e.OMap[target] != nil {
+		return e.OMap[target], nil
 	}
-	defer s.Finalize()
+	e.OMap[target], err = omap.BuildOMap(sess, e.Mib, "ifName")
+	if err != nil {
+		return nil, fmt.Errorf("failed to build IF-map: %w", err)
+	}
+	return e.OMap[target], nil
+
+}
+func (e *Engine) Run(target string, oids []string, emap bool) error {
+	sess, err := session.NewSession(target)
+	if err != nil {
+		return err
+	}
+	defer sess.Finalize()
 
 	t := Task{}
-	t.Mib = mib
-	t.OMap, err = omap.BuildOMap(s, t.Mib, "ifName")
-	if err != nil {
-		tpoll.Fatalf("failed to build IF-map: %s", err)
-	}
-
-	m := make([]tpoll.Node, 0, len(os.Args)-1)
-	for idx, arg := range os.Args {
-		if idx == 0 {
-			continue
-		}
-		nym, err := mib.Lookup(arg)
+	if emap {
+		t.OMap, err = e.GetOmap(target, sess)
 		if err != nil {
-			tpoll.Fatalf("unable to lookup mib/oid/thingy %s: %s", arg, err)
+			return fmt.Errorf("failed to build IF-map: %w", err)
+		}
+	}
+	t.Mib = e.Mib
+	m := make([]tpoll.Node, 0, len(os.Args)-1)
+	for _, arg := range oids {
+		nym, err := e.Mib.Lookup(arg)
+		if err != nil {
+			fmt.Errorf("unable to look up oid: %w", err)
 		}
 		m = append(m, nym)
 	}
 	if len(m) < 1 {
-		tpoll.Fatalf("no oids to look up?")
+		return fmt.Errorf("trying to start rul with 0 oids?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
-	t.Metric.Metadata["oids"] = os.Args[1:]
-	t.Metric.Metadata["host"] = "192.168.122.41"
+	t.Metric.Metadata["oids"] = oids
+	t.Metric.Metadata["host"] = target
 	t.Metric.Data = make(map[string]interface{})
-	err = s.BulkWalk(m, t.bwCB)
+	err = sess.BulkWalk(m, t.bwCB)
 	if err != nil {
-		tpoll.Fatalf("Walk Failed: %v\n", err)
+		return fmt.Errorf("walk failed: %w", err)
 	}
 	c := skogul.Container{}
 	c.Metrics = append(c.Metrics, &t.Metric)
 
-	err = sconfig.Handlers["tpoll"].Handler.TransformAndSend(&c)
+	err = e.Skogul.Handlers["tpoll"].Handler.TransformAndSend(&c)
 	if err != nil {
-		tpoll.Fatalf("sending failed: %v", err)
+		return fmt.Errorf("send failed: %w", err)
 	}
+	return nil
 }
 
 func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
@@ -116,7 +141,7 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 				idxN64, _ := strconv.ParseInt(trailer, 10, 32)
 				idx := int(idxN64)
 
-				if t.OMap.IdxToName[idx] != "" {
+				if t.OMap != nil && t.OMap.IdxToName[idx] != "" {
 					trailer = t.OMap.IdxToName[idx]
 				}
 			}
@@ -140,4 +165,17 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 		//(t.Metric.Data[element].(map[string]interface{}))[name+"Type"] = fmt.Sprintf("0x%02X", byte(pdu.Type))
 	}
 	return nil
+}
+
+func main() {
+	e := Engine{}
+	err := e.Init("skogul")
+	if err != nil {
+		tpoll.Fatalf("Couldn't initialize engine: %s", err)
+	}
+	for ; ; time.Sleep(time.Second * 2) {
+		e.Run("192.168.122.41", os.Args[1:], true)
+		e.Run("192.168.122.128", os.Args[1:], true)
+		e.Run("192.168.122.41", os.Args[1:], false)
+	}
 }
