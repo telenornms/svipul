@@ -42,25 +42,31 @@ import (
 	"github.com/telenornms/tpoll/smierte"
 )
 
+// Task is tied to a single SNMP run/walk and a single host
 type Task struct {
-	OMap   *omap.OMap
-	Mib    *smierte.Config
-	Metric skogul.Metric
+	OMap   *omap.OMap // Engine populates uniquely for each target
+	Mib    *smierte.Config // Engine populates, but same instance
+	Metric skogul.Metric // New metric for each run.
 }
 
+// Engine is semi-global state for SNMP, including a "cached" OMap ... map
 type Engine struct {
-	Skogul *sconfig.Config
-	Mib    *smierte.Config
-	OMap   map[string]*omap.OMap
+	Skogul *sconfig.Config // output
+	Mib    *smierte.Config // MIB
+	OMap   map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
+// Init reads configuration and whatnot for the engine
 func (e *Engine) Init(sc string) error {
 	var err error
 	e.Skogul, err = sconfig.Path(sc)
-	e.OMap = make(map[string]*omap.OMap)
 	if err != nil {
-		return fmt.Errorf("unable to initilize engine")
+		return fmt.Errorf("skogul-config failed loading: %w", err)
 	}
+	if e.Skogul.Handlers["tpoll"] == nil {
+		return fmt.Errorf("missing tpoll handler in skogul config")
+	}
+	e.OMap = make(map[string]*omap.OMap)
 	mib := &smierte.Config{}
 	mib.Paths = config.MibPaths
 	mib.Modules = config.MibModules
@@ -72,6 +78,7 @@ func (e *Engine) Init(sc string) error {
 	return nil
 }
 
+// GetOmap builds an omap on demand, or returns an already built one
 func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, error) {
 	var err error
 	if e.OMap[target] != nil {
@@ -82,12 +89,14 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 		return nil, fmt.Errorf("failed to build IF-map: %w", err)
 	}
 	return e.OMap[target], nil
-
 }
+
+// Run starts an SNMP session for a target and collects the specified oids,
+// if emap is true, it will use an oid/element map, building it on demand.
 func (e *Engine) Run(target string, oids []string, emap bool) error {
 	sess, err := session.NewSession(target)
 	if err != nil {
-		return err
+		return fmt.Errorf("session creation failed: %w", err)
 	}
 	defer sess.Finalize()
 
@@ -113,6 +122,7 @@ func (e *Engine) Run(target string, oids []string, emap bool) error {
 	t.Metric.Metadata = make(map[string]interface{})
 	t.Metric.Metadata["oids"] = oids
 	t.Metric.Metadata["host"] = target
+	t.Metric.Metadata["useMap"] = emap
 	t.Metric.Data = make(map[string]interface{})
 	err = sess.BulkWalk(m, t.bwCB)
 	if err != nil {
@@ -167,15 +177,37 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	return nil
 }
 
+type Order struct {
+	Target string
+	Oids	[]string
+	EMap	bool
+}
+
+func (e *Engine) Listener(c chan Order, name string) {
+	tpoll.Logf("Starting listener %s...", name)
+	for order := range c {
+		err := e.Run(order.Target, order.Oids, order.EMap)
+		if err != nil {
+			tpoll.Logf("%s: order for %s failed: %s", name, order.Target, err)
+		} else {
+			tpoll.Logf("%s: order for %s OK", name, order.Target)
+		}
+	}
+}
+
 func main() {
 	e := Engine{}
 	err := e.Init("skogul")
 	if err != nil {
 		tpoll.Fatalf("Couldn't initialize engine: %s", err)
 	}
-	for ; ; time.Sleep(time.Second * 2) {
-		e.Run("192.168.122.41", os.Args[1:], true)
-		e.Run("192.168.122.128", os.Args[1:], true)
-		e.Run("192.168.122.41", os.Args[1:], false)
+	c := make(chan Order, 1)
+	for i := 0; i < 10; i++ {
+		go e.Listener(c, fmt.Sprintf("%d", i))
+	}
+	for ; ; time.Sleep(time.Nanosecond * 2) {
+		c <- Order{"192.168.122.41", os.Args[1:], true}
+		c <- Order{"192.168.122.128", os.Args[1:], true}
+		c <- Order{"192.168.122.41", os.Args[1:], false}
 	}
 }
