@@ -25,6 +25,7 @@ package omap
 
 import (
 	"fmt"
+	"time"
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/tpoll"
 	"github.com/telenornms/tpoll/smierte"
@@ -44,6 +45,7 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	var err error
 	m.IdxToName = make(map[int]string)
 	m.NameToIdx = make(map[string]int)
+	start := time.Now()
 	m.Oid, err = mib.Lookup(oid)
 	if err != nil {
 		return nil, fmt.Errorf("lookup of oid %s failed: %w", oid, err)
@@ -52,8 +54,9 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 		return nil, fmt.Errorf("what happened with mib.Lookup? mib: %#v", mib)
 	}
 	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
+	since := time.Since(start).Round(time.Millisecond *100)
 	if err == nil  {
-		tpoll.Debugf("omap built with %d elements", len(m.IdxToName))
+		tpoll.Debugf("omap built with %d elements in %s", len(m.IdxToName), since.String())
 	}
 	return m, err
 }

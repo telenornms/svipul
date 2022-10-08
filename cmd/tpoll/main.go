@@ -28,6 +28,8 @@ package main
 
 import (
 	"fmt"
+	"encoding/json"
+	"regexp"
 	"os"
 	"strconv"
 	"time"
@@ -95,28 +97,29 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
-func (e *Engine) Run(target string, oids []string, emap bool) error {
-	_, loaded := e.Targets.LoadOrStore(target, 1)
+func (e *Engine) Run(o Order) error {
+	// target string, oids []string, emap bool) error {
+	_, loaded := e.Targets.LoadOrStore(o.Target, 1)
 	if loaded {
 		return fmt.Errorf("target still locked, refusing to start more runs")
 	}
-	defer e.Targets.Delete(target)
-	sess, err := session.NewSession(target)
+	defer e.Targets.Delete(o.Target)
+	sess, err := session.NewSession(o.Target)
 	if err != nil {
 		return fmt.Errorf("session creation failed: %w", err)
 	}
 	defer sess.Finalize()
 
 	t := Task{}
-	if emap {
-		t.OMap, err = e.GetOmap(target, sess)
+	if o.EMap {
+		t.OMap, err = e.GetOmap(o.Target, sess)
 		if err != nil {
 			return fmt.Errorf("failed to build IF-map: %w", err)
 		}
 	}
 	t.Mib = e.Mib
-	m := make([]tpoll.Node, 0, len(os.Args)-1)
-	for _, arg := range oids {
+	m := make([]tpoll.Node, 0, len(o.Oids))
+	for _, arg := range o.Oids {
 		nym, err := e.Mib.Lookup(arg)
 		if err != nil {
 			fmt.Errorf("unable to look up oid: %w", err)
@@ -127,11 +130,33 @@ func (e *Engine) Run(target string, oids []string, emap bool) error {
 		return fmt.Errorf("trying to start rul with 0 oids?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
-	t.Metric.Metadata["oids"] = oids
-	t.Metric.Metadata["host"] = target
-	t.Metric.Metadata["useMap"] = emap
+	t.Metric.Metadata["oids"] = o.Oids
+	t.Metric.Metadata["mode"] = o.Mode
+	t.Metric.Metadata["host"] = o.Target
+	t.Metric.Metadata["useMap"] = o.EMap
 	t.Metric.Data = make(map[string]interface{})
-	err = sess.BulkWalk(m, t.bwCB)
+	if o.Mode == GetElements {
+		nym := make([]tpoll.Node, 0, len(m)*len(o.Elements))
+		for _,oid := range m {
+			for _,e := range o.Elements {
+				for idx,einner := range t.OMap.NameToIdx {
+					match, _ := regexp.Match(e, []byte(idx))
+					if match {
+						eid := einner
+						nym = append(nym, tpoll.Node{Numeric: oid.Numeric+fmt.Sprintf(".%d",eid)})
+					}
+
+				}
+			}
+		}
+		err = sess.Get(nym, t.bwCB)
+	} else if o.Mode == Walk {
+		err = sess.BulkWalk(m, t.bwCB)
+	} else if o.Mode == Get {
+		err = sess.Get(m, t.bwCB)
+	} else {
+		return fmt.Errorf("unsupported mode")
+	}
 	if err != nil {
 		return fmt.Errorf("walk failed: %w", err)
 	}
@@ -153,13 +178,19 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 		if err != nil {
 			tpoll.Logf("lookup failed: %s", err)
 		} else {
-			trailer := pdu.Name[len(n.Numeric)+1:][1:]
-			if len(trailer) > 0 {
-				idxN64, _ := strconv.ParseInt(trailer, 10, 32)
-				idx := int(idxN64)
+			var trailer string
+			if len(n.Numeric) >= len(pdu.Name)-1 || (n.Qualified != "" && pdu.Name == n.Qualified[1:]) {
+				tpoll.Logf("ish: %s vs %v", n.Numeric, pdu)
+				trailer = "0"
+			} else {
+				trailer = pdu.Name[len(n.Numeric)+1:][1:]
+				if len(trailer) > 0 {
+					idxN64, _ := strconv.ParseInt(trailer, 10, 32)
+					idx := int(idxN64)
 
-				if t.OMap != nil && t.OMap.IdxToName[idx] != "" {
-					trailer = t.OMap.IdxToName[idx]
+					if t.OMap != nil && t.OMap.IdxToName[idx] != "" {
+						trailer = t.OMap.IdxToName[idx]
+					}
 				}
 			}
 			name = n.Name
@@ -184,24 +215,36 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	return nil
 }
 
+type mode int
+
+const (
+	Walk	mode = iota // Do a walk
+	Get	 // Get just these oids
+	GetElements // Get these specific oids, but per elements
+)
+
 type Order struct {
 	Target string
 	Oids	[]string
 	EMap	bool
+	Elements []string
+	Mode	mode
+}
+
+func (o Order) String() string {
+	return o.Target
 }
 
 func (e *Engine) Listener(c chan Order, name string) {
 	tpoll.Logf("Starting listener %s...", name)
 	for order := range c {
 		now := time.Now()
-		err := e.Run(order.Target, order.Oids, order.EMap)
+		err := e.Run(order)
 		since := time.Since(now).Round(time.Millisecond * 10)
-
-
 		if err != nil {
-			tpoll.Logf("%s[%s]: %s failed: %s", name, since.String(), order.Target, err)
+			tpoll.Logf("%s[%s]: %s failed: %s", name, since.String(), order, err)
 		} else {
-			tpoll.Logf("%s[%s]: %s OK", name, since.String(), order.Target)
+			tpoll.Logf("%s[%s]: %s OK", name, since.String(), order)
 		}
 	}
 }
@@ -216,13 +259,29 @@ func main() {
 	for i := 0; i < 10; i++ {
 		go e.Listener(c, fmt.Sprintf("%d", i))
 	}
+	bytes, err := os.ReadFile("orders.json")
+	if err != nil {
+		tpoll.Fatalf("orders.json read error: %s", err)
+	}
+	orders := []Order{}
+	err = json.Unmarshal(bytes, &orders)
+	if err != nil {
+		tpoll.Fatalf("orders json unmarshal: %s", err)
+	}
 	for {
-		c <- Order{"192.168.122.41", os.Args[1:], true}
-		c <- Order{"192.168.2.3", os.Args[1:], true}
+		for _,o := range orders {
+			c <- o
+		}
+//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{}, Walk}
+//		c <- Order{"192.168.2.3", []string{"ifHCInOctets","ifHCOutOctets"}, true, []string{"xe-.*"}, GetElements}
+//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$"}, GetElements}
+//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$", "enp.*"}, GetElements}
+//		c <- Order{"192.168.2.3", []string{"sysName","sysDescr"}, true, []string{}, Get}
+//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{}, Walk}
 //		c <- Order{"192.168.2.3", os.Args[1:], true}
 //		c <- Order{"192.168.2.3", os.Args[1:], true}
 //		c <- Order{"192.168.122.41", os.Args[1:], false}
-		c <- Order{"192.168.2.3", os.Args[1:], false}
+//		c <- Order{"192.168.2.3", os.Args[1:], false, []string{}, Walk}
 		time.Sleep(time.Second * 5) 
 	}
 }

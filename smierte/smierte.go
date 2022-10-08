@@ -110,6 +110,8 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	}
 	ret.Numeric = n.RenderNumeric()
 	ret.Name = n.Render(types.RenderName)
-	ret.Qualified = n.RenderQualified()
+	if match {
+		ret.Qualified = item[1:]
+	}
 	return ret, nil
 }
