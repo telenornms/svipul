@@ -48,7 +48,13 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	if err != nil {
 		return nil, fmt.Errorf("lookup of oid %s failed: %w", oid, err)
 	}
+	if m.Oid.Numeric == "" {
+		return nil, fmt.Errorf("what happened with mib.Lookup? mib: %#v", mib)
+	}
 	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
+	if err == nil  {
+		tpoll.Debugf("omap built with %d elements", len(m.IdxToName))
+	}
 	return m, err
 }
 

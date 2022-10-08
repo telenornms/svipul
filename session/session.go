@@ -50,13 +50,16 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error
 	iterations := 0
 	misses := 0
 	hits := 0
+	if oids[0] == "." || originals[0] == "." {
+		return fmt.Errorf("corrupt oid-lookup, probably a bug. oids[0] is blank")
+	}
 	for ; len(oids) > 0; iterations++ {
 		revmap := make(map[string]string)
-		result, err := s.S.GetBulk(oids, 0, 3)
-		oids = make([]string, 0, 5)
+		result, err := s.S.GetBulk(oids, 0, 10)
 		if err != nil {
-			return err
+			return fmt.Errorf("GetBulk failed after %d iterations: %w", iterations, err)
 		}
+		oids = make([]string, 0, 5)
 		if result.Error != gosnmp.NoError {
 			return fmt.Errorf("response error: %s", result.Error)
 		}

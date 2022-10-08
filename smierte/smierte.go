@@ -47,6 +47,7 @@ import (
 type Config struct {
 	Modules []string // SMI modules to load
 	Paths   []string // Paths to the modules
+	lock 	sync.Mutex
 }
 
 // cache is an internal OID-cache for Nodes, to avoid expensive SMI-lookups
@@ -72,17 +73,25 @@ func (c *Config) Init() error {
 	return nil
 }
 
+// Lookup looks up an oid, first in cache, then regularly. It needs to do a
+// bit of lock-juggling, despite cache being sync.Map: the sync.Map bit is
+// safe enough, but there's a good chance we'll do multiple lookups in
+// parallel here. Could probably be simplified, need to benchmark how slow
+// types.OidFromString, GetNodeByOID and GetNode is...
 func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	if chit, ok := cache.Load(item); ok {
 		cast, _ := chit.(*tpoll.Node)
 		return *cast, nil
 	}
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	// Re-check in case other go-routine got it
+	if chit, ok := cache.Load(item); ok {
+		cast, _ := chit.(*tpoll.Node)
+		return *cast, nil
+	}
 	var ret tpoll.Node
-	// We set this early because there's currently no reason to assume
-	// a cache miss will magically become a cache hit later.
-	// XXX: When we DO deal with internal reloading, we need to nuke
-	// this cache.
-	cache.Store(item, &ret)
+	defer cache.Store(item, &ret)
 	ret.Key = item
 	match, _ := regexp.Match("^[0-9.]+$", []byte(item))
 	var err error

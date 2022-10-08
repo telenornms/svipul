@@ -31,6 +31,7 @@ import (
 	"os"
 	"strconv"
 	"time"
+	"sync"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/skogul"
@@ -53,6 +54,7 @@ type Task struct {
 type Engine struct {
 	Skogul *sconfig.Config // output
 	Mib    *smierte.Config // MIB
+	Targets sync.Map
 	OMap   map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
@@ -94,6 +96,11 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
 func (e *Engine) Run(target string, oids []string, emap bool) error {
+	_, loaded := e.Targets.LoadOrStore(target, 1)
+	if loaded {
+		return fmt.Errorf("target still locked, refusing to start more runs")
+	}
+	defer e.Targets.Delete(target)
 	sess, err := session.NewSession(target)
 	if err != nil {
 		return fmt.Errorf("session creation failed: %w", err)
@@ -186,11 +193,15 @@ type Order struct {
 func (e *Engine) Listener(c chan Order, name string) {
 	tpoll.Logf("Starting listener %s...", name)
 	for order := range c {
+		now := time.Now()
 		err := e.Run(order.Target, order.Oids, order.EMap)
+		since := time.Since(now).Round(time.Millisecond * 10)
+
+
 		if err != nil {
-			tpoll.Logf("%s: order for %s failed: %s", name, order.Target, err)
+			tpoll.Logf("%s[%s]: %s failed: %s", name, since.String(), order.Target, err)
 		} else {
-			tpoll.Logf("%s: order for %s OK", name, order.Target)
+			tpoll.Logf("%s[%s]: %s OK", name, since.String(), order.Target)
 		}
 	}
 }
@@ -205,9 +216,13 @@ func main() {
 	for i := 0; i < 10; i++ {
 		go e.Listener(c, fmt.Sprintf("%d", i))
 	}
-	for ; ; time.Sleep(time.Nanosecond * 2) {
+	for {
 		c <- Order{"192.168.122.41", os.Args[1:], true}
-		c <- Order{"192.168.122.128", os.Args[1:], true}
-		c <- Order{"192.168.122.41", os.Args[1:], false}
+		c <- Order{"192.168.2.3", os.Args[1:], true}
+//		c <- Order{"192.168.2.3", os.Args[1:], true}
+//		c <- Order{"192.168.2.3", os.Args[1:], true}
+//		c <- Order{"192.168.122.41", os.Args[1:], false}
+		c <- Order{"192.168.2.3", os.Args[1:], false}
+		time.Sleep(time.Second * 5) 
 	}
 }
