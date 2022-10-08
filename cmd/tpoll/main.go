@@ -34,6 +34,7 @@ import (
 	"strconv"
 	"time"
 	"sync"
+	"strings"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/skogul"
@@ -130,10 +131,7 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("trying to start rul with 0 oids?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
-	t.Metric.Metadata["oids"] = o.Oids
-	t.Metric.Metadata["mode"] = o.Mode
-	t.Metric.Metadata["host"] = o.Target
-	t.Metric.Metadata["useMap"] = o.EMap
+	t.Metric.Metadata["order"] = o
 	t.Metric.Data = make(map[string]interface{})
 	if o.Mode == GetElements {
 		nym := make([]tpoll.Node, 0, len(m)*len(o.Elements))
@@ -215,10 +213,10 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	return nil
 }
 
-type mode int
+type Mode int
 
 const (
-	Walk	mode = iota // Do a walk
+	Walk	Mode = iota // Do a walk
 	Get	 // Get just these oids
 	GetElements // Get these specific oids, but per elements
 )
@@ -228,7 +226,40 @@ type Order struct {
 	Oids	[]string
 	EMap	bool
 	Elements []string
-	Mode	mode
+	Mode	Mode
+}
+
+
+func (m *Mode) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	s = strings.ToLower(s)
+	switch s {
+		case "walk":
+			*m = Walk;
+		case "get":
+			*m = Get;
+		case "getelements":
+			*m = GetElements;
+		default:
+			return fmt.Errorf("invalid mode: %s", s)
+	}
+	return nil
+}
+
+func (m Mode) MarshalJSON() ([]byte, error) {
+	switch m {
+		case Walk:
+			return []byte("\"Walk\""), nil
+		case Get:
+			return []byte("\"Get\""), nil
+		case GetElements:
+			return []byte("\"GetElements\""), nil
+		default:
+			return []byte("\"\""),fmt.Errorf("invalud mode %d!", m)
+	}
 }
 
 func (o Order) String() string {
