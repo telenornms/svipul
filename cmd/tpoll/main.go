@@ -242,9 +242,9 @@ func (e *Engine) Listener(c chan Order, name string) {
 		err := e.Run(order)
 		since := time.Since(now).Round(time.Millisecond * 10)
 		if err != nil {
-			tpoll.Logf("%s[%s]: %s failed: %s", name, since.String(), order, err)
+			tpoll.Logf("%2s: %-15s FAIL %s: %s" , name, order, since.String(), err)
 		} else {
-			tpoll.Logf("%s[%s]: %s OK", name, since.String(), order)
+			tpoll.Logf("%2s: %-15s OK %s", name, order, since.String())
 		}
 	}
 }
