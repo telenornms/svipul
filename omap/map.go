@@ -25,11 +25,11 @@ package omap
 
 import (
 	"fmt"
-	"time"
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/tpoll"
 	"github.com/telenornms/tpoll/smierte"
 	"strconv"
+	"time"
 )
 
 // OMap is a two-way map of index to name, the typical case is ifIndex to
@@ -54,8 +54,8 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 		return nil, fmt.Errorf("what happened with mib.Lookup? mib: %#v", mib)
 	}
 	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
-	since := time.Since(start).Round(time.Millisecond *100)
-	if err == nil  {
+	since := time.Since(start).Round(time.Millisecond * 100)
+	if err == nil {
 		tpoll.Debugf("omap built with %d elements in %s", len(m.IdxToName), since.String())
 	}
 	return m, err

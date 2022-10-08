@@ -58,7 +58,7 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) err
 	}
 	runs := 0
 	for i := 0; i < len(oids); i += 50 {
-		end := i+50
+		end := i + 50
 		if end > len(oids) {
 			end = len(oids)
 		}

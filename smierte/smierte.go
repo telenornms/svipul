@@ -47,7 +47,7 @@ import (
 type Config struct {
 	Modules []string // SMI modules to load
 	Paths   []string // Paths to the modules
-	lock 	sync.Mutex
+	lock    sync.Mutex
 }
 
 // cache is an internal OID-cache for Nodes, to avoid expensive SMI-lookups

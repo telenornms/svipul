@@ -27,14 +27,14 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
-	"regexp"
+	"fmt"
 	"os"
+	"regexp"
 	"strconv"
-	"time"
-	"sync"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/skogul"
@@ -48,17 +48,17 @@ import (
 
 // Task is tied to a single SNMP run/walk and a single host
 type Task struct {
-	OMap   *omap.OMap // Engine populates uniquely for each target
+	OMap   *omap.OMap      // Engine populates uniquely for each target
 	Mib    *smierte.Config // Engine populates, but same instance
-	Metric skogul.Metric // New metric for each run.
+	Metric skogul.Metric   // New metric for each run.
 }
 
 // Engine is semi-global state for SNMP, including a "cached" OMap ... map
 type Engine struct {
-	Skogul *sconfig.Config // output
-	Mib    *smierte.Config // MIB
+	Skogul  *sconfig.Config // output
+	Mib     *smierte.Config // MIB
 	Targets sync.Map
-	OMap   map[string]*omap.OMap // Caches/stores looked up/built omaps
+	OMap    map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
 // Init reads configuration and whatnot for the engine
@@ -135,13 +135,13 @@ func (e *Engine) Run(o Order) error {
 	t.Metric.Data = make(map[string]interface{})
 	if o.Mode == GetElements {
 		nym := make([]tpoll.Node, 0, len(m)*len(o.Elements))
-		for _,oid := range m {
-			for _,e := range o.Elements {
-				for idx,einner := range t.OMap.NameToIdx {
+		for _, oid := range m {
+			for _, e := range o.Elements {
+				for idx, einner := range t.OMap.NameToIdx {
 					match, _ := regexp.Match(e, []byte(idx))
 					if match {
 						eid := einner
-						nym = append(nym, tpoll.Node{Numeric: oid.Numeric+fmt.Sprintf(".%d",eid)})
+						nym = append(nym, tpoll.Node{Numeric: oid.Numeric + fmt.Sprintf(".%d", eid)})
 					}
 
 				}
@@ -216,19 +216,18 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 type Mode int
 
 const (
-	Walk	Mode = iota // Do a walk
-	Get	 // Get just these oids
-	GetElements // Get these specific oids, but per elements
+	Walk        Mode = iota // Do a walk
+	Get                     // Get just these oids
+	GetElements             // Get these specific oids, but per elements
 )
 
 type Order struct {
-	Target string
-	Oids	[]string
-	EMap	bool
+	Target   string
+	Oids     []string
+	EMap     bool
 	Elements []string
-	Mode	Mode
+	Mode     Mode
 }
-
 
 func (m *Mode) UnmarshalJSON(b []byte) error {
 	var s string
@@ -237,28 +236,28 @@ func (m *Mode) UnmarshalJSON(b []byte) error {
 	}
 	s = strings.ToLower(s)
 	switch s {
-		case "walk":
-			*m = Walk;
-		case "get":
-			*m = Get;
-		case "getelements":
-			*m = GetElements;
-		default:
-			return fmt.Errorf("invalid mode: %s", s)
+	case "walk":
+		*m = Walk
+	case "get":
+		*m = Get
+	case "getelements":
+		*m = GetElements
+	default:
+		return fmt.Errorf("invalid mode: %s", s)
 	}
 	return nil
 }
 
 func (m Mode) MarshalJSON() ([]byte, error) {
 	switch m {
-		case Walk:
-			return []byte("\"Walk\""), nil
-		case Get:
-			return []byte("\"Get\""), nil
-		case GetElements:
-			return []byte("\"GetElements\""), nil
-		default:
-			return []byte("\"\""),fmt.Errorf("invalud mode %d!", m)
+	case Walk:
+		return []byte("\"Walk\""), nil
+	case Get:
+		return []byte("\"Get\""), nil
+	case GetElements:
+		return []byte("\"GetElements\""), nil
+	default:
+		return []byte("\"\""), fmt.Errorf("invalud mode %d!", m)
 	}
 }
 
@@ -273,7 +272,7 @@ func (e *Engine) Listener(c chan Order, name string) {
 		err := e.Run(order)
 		since := time.Since(now).Round(time.Millisecond * 10)
 		if err != nil {
-			tpoll.Logf("%2s: %-15s FAIL %s: %s" , name, order, since.String(), err)
+			tpoll.Logf("%2s: %-15s FAIL %s: %s", name, order, since.String(), err)
 		} else {
 			tpoll.Logf("%2s: %-15s OK %s", name, order, since.String())
 		}
@@ -300,19 +299,19 @@ func main() {
 		tpoll.Fatalf("orders json unmarshal: %s", err)
 	}
 	for {
-		for _,o := range orders {
+		for _, o := range orders {
 			c <- o
 		}
-//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{}, Walk}
-//		c <- Order{"192.168.2.3", []string{"ifHCInOctets","ifHCOutOctets"}, true, []string{"xe-.*"}, GetElements}
-//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$"}, GetElements}
-//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$", "enp.*"}, GetElements}
-//		c <- Order{"192.168.2.3", []string{"sysName","sysDescr"}, true, []string{}, Get}
-//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{}, Walk}
-//		c <- Order{"192.168.2.3", os.Args[1:], true}
-//		c <- Order{"192.168.2.3", os.Args[1:], true}
-//		c <- Order{"192.168.122.41", os.Args[1:], false}
-//		c <- Order{"192.168.2.3", os.Args[1:], false, []string{}, Walk}
-		time.Sleep(time.Second * 5) 
+		//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{}, Walk}
+		//		c <- Order{"192.168.2.3", []string{"ifHCInOctets","ifHCOutOctets"}, true, []string{"xe-.*"}, GetElements}
+		//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$"}, GetElements}
+		//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$", "enp.*"}, GetElements}
+		//		c <- Order{"192.168.2.3", []string{"sysName","sysDescr"}, true, []string{}, Get}
+		//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{}, Walk}
+		//		c <- Order{"192.168.2.3", os.Args[1:], true}
+		//		c <- Order{"192.168.2.3", os.Args[1:], true}
+		//		c <- Order{"192.168.122.41", os.Args[1:], false}
+		//		c <- Order{"192.168.2.3", os.Args[1:], false, []string{}, Walk}
+		time.Sleep(time.Second * 5)
 	}
 }
