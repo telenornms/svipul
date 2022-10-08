@@ -288,6 +288,7 @@ func main() {
 	c := make(chan Order, 1)
 	for i := 0; i < 10; i++ {
 		go e.Listener(c, fmt.Sprintf("%d", i))
+		time.Sleep(time.Microsecond * 10)
 	}
 	bytes, err := os.ReadFile("orders.json")
 	if err != nil {
@@ -302,16 +303,6 @@ func main() {
 		for _, o := range orders {
 			c <- o
 		}
-		//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{}, Walk}
-		//		c <- Order{"192.168.2.3", []string{"ifHCInOctets","ifHCOutOctets"}, true, []string{"xe-.*"}, GetElements}
-		//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$"}, GetElements}
-		//		c <- Order{"192.168.122.41", os.Args[1:], true, []string{"(ge|xe|et)-[0-9/]*$", "enp.*"}, GetElements}
-		//		c <- Order{"192.168.2.3", []string{"sysName","sysDescr"}, true, []string{}, Get}
-		//		c <- Order{"192.168.2.3", os.Args[1:], true, []string{}, Walk}
-		//		c <- Order{"192.168.2.3", os.Args[1:], true}
-		//		c <- Order{"192.168.2.3", os.Args[1:], true}
-		//		c <- Order{"192.168.122.41", os.Args[1:], false}
-		//		c <- Order{"192.168.2.3", os.Args[1:], false, []string{}, Walk}
 		time.Sleep(time.Second * 5)
 	}
 }

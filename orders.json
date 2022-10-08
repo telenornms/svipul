@@ -1,55 +1,14 @@
 [
 	{
-		"target": "192.168.2.3",
-		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
-		"emap": true,
-		"mode": "GetElements"
-	},
-	{
-		"target": "ex-lol6",
-		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
-		"emap": true,
-		"mode": "GetElements"
-	},
-	{
-		"target": "ex-lol2",
-		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
-		"emap": true,
-		"mode": "GetElements"
-	},
-	{
-		"target": "ex-lol3",
-		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
-		"emap": true,
-		"mode": "GetElements"
-	},
-	{
-		"target": "ex-lol4",
-		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
-		"emap": true,
-		"mode": "GetElements"
-	},
-	{
 		"target": "ex-lol5",
 		"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
-		"elements": ["(ge|et|xe)-[0-9/]*$"],
+		"elements": ["(ge|xe)-[0-9/]*$"],
 		"emap": true,
 		"mode": "GetElements"
 	},
 	{
 		"target": "192.168.122.41",
 		"oids": ["ifTable", "ifXTable"],
-		"emap": true,
-		"mode": "Walk"
-	},
-	{
-		"target": "ex-lol1",
-		"oids": [ "ifTable", "ifXTable"],
 		"emap": true,
 		"mode": "Walk"
 	},
