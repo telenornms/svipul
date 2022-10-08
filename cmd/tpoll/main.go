@@ -299,10 +299,18 @@ func main() {
 	if err != nil {
 		tpoll.Fatalf("orders json unmarshal: %s", err)
 	}
+	if len(os.Args) < 2 {
+		tpoll.Fatalf("Specify sleep duration!")
+	}
+
+	sleeptime, err := time.ParseDuration(os.Args[1])
+	if err != nil {
+		tpoll.Fatalf("Failed to parse duration/sleep: %s", err)
+	}
 	for {
 		for _, o := range orders {
 			c <- o
 		}
-		time.Sleep(time.Second * 5)
+		time.Sleep(sleeptime)
 	}
 }
