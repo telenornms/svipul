@@ -1,0 +1,6 @@
+{
+	"target": "192.168.2.3",
+	"mode": "Walk",
+	"oids": ["ifTable", "ifXTable"],
+	"emap": true
+}

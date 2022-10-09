@@ -29,7 +29,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -37,6 +36,7 @@ import (
 	"time"
 
 	"github.com/gosnmp/gosnmp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/tpoll"
@@ -290,27 +290,51 @@ func main() {
 		go e.Listener(c, fmt.Sprintf("%d", i))
 		time.Sleep(time.Microsecond * 10)
 	}
-	bytes, err := os.ReadFile("orders.json")
+
+	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.2:5672/")
 	if err != nil {
-		tpoll.Fatalf("orders.json read error: %s", err)
+		tpoll.Fatalf("can't connect to broker: %s", err)
 	}
-	orders := []Order{}
-	err = json.Unmarshal(bytes, &orders)
+	defer conn.Close()
+
+	ch, err := conn.Channel()
 	if err != nil {
-		tpoll.Fatalf("orders json unmarshal: %s", err)
+		tpoll.Fatalf("can't get channel: %s", err)
 	}
-	if len(os.Args) < 2 {
-		tpoll.Fatalf("Specify sleep duration!")
+	defer ch.Close()
+
+	q, err := ch.QueueDeclare(
+		"tpoll", // name
+		false,   // durable
+		false,   // delete when unused
+		false,   // exclusive
+		false,   // no-wait
+		nil,     // arguments
+	)
+	if err != nil {
+		tpoll.Fatalf("can't declare queue: %s", err)
 	}
 
-	sleeptime, err := time.ParseDuration(os.Args[1])
+	msgs, err := ch.Consume(
+		q.Name, // queue
+		"",     // consumer
+		true,   // auto-ack
+		false,  // exclusive
+		false,  // no-local
+		false,  // no-wait
+		nil,    // args
+	)
 	if err != nil {
-		tpoll.Fatalf("Failed to parse duration/sleep: %s", err)
+		tpoll.Fatalf("can't register consumer: %s", err)
 	}
-	for {
-		for _, o := range orders {
-			c <- o
+	tpoll.Logf("Listening for orders")
+	for d := range msgs {
+		order := Order{}
+		err = json.Unmarshal(d.Body, &order)
+		if err != nil {
+			tpoll.Logf("order json unmarshal: %s", err)
+			continue
 		}
-		time.Sleep(sleeptime)
+		c <- order
 	}
 }

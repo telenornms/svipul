@@ -14,7 +14,7 @@
 		"measure": {
 			"type": "count",
 			"stats": "statsH",
-			"next": "null"
+			"next": "print"
 		},
 		"tofile": {
 			"type": "file",

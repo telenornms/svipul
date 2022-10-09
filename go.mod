@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/gosnmp/gosnmp v1.35.0
+	github.com/rabbitmq/amqp091-go v1.5.0
 	github.com/sleepinggenius2/gosmi v0.4.4
 	github.com/telenornms/skogul v0.18.0
 )
