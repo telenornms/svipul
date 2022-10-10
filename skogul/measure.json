@@ -1,0 +1,20 @@
+{
+	"handlers": {
+		"statsH": {
+			"sender": "tofile",
+			"parser": "json"
+		}
+	},
+	"senders": {
+		"measure": {
+			"type": "count",
+			"stats": "statsH",
+			"next": "null"
+		},
+		"tofile": {
+			"type": "file",
+			"encoder": "prettyjson",
+			"path": "debug-file"
+		}
+	}
+}

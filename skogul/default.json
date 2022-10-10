@@ -1,25 +1,9 @@
 {
 	"handlers": {
 		"tpoll": {
-			"sender": "measure",
+			"sender": "print",
 			"transformers": ["now"],
 			"parser": "json"
-		},
-		"statsH": {
-			"sender": "tofile",
-			"parser": "json"
-		}
-	},
-	"senders": {
-		"measure": {
-			"type": "count",
-			"stats": "statsH",
-			"next": "print"
-		},
-		"tofile": {
-			"type": "file",
-			"encoder": "prettyjson",
-			"path": "debug-file"
 		}
 	}
 }

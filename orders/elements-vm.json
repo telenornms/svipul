@@ -1,0 +1,7 @@
+{
+	"target": "vm-lol2",
+	"mode": "GetElements",
+	"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
+	"elements": ["lo.*","e.*"],
+	"emap": true
+}

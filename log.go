@@ -39,6 +39,11 @@ import (
 	"log"
 )
 
+func init() {
+	d := log.Default()
+	d.SetFlags(log.Ltime)
+}
+
 func Log(v ...any) {
 	log.Print(v...)
 }
