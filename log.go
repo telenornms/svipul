@@ -37,51 +37,56 @@ when it's disabled.
 import (
 	"github.com/telenornms/tpoll/config"
 	"log"
+	"os"
+	"fmt"
 )
 
 func init() {
 	d := log.Default()
-	d.SetFlags(log.Ltime)
+	d.SetFlags(log.Ltime | log.Lshortfile)
 }
 
 func Log(v ...any) {
-	log.Print(v...)
+	log.Output(2, fmt.Sprint(v...))
 }
 
 func Logf(format string, v ...any) {
-	log.Printf(format, v...)
+	log.Output(2, fmt.Sprintf(format, v...))
 }
 
 func Logln(v ...any) {
-	log.Println(v...)
+	log.Output(2, fmt.Sprintln(v...))
 }
 
 func Fatal(v ...any) {
-	log.Fatal(v...)
+	log.Output(2, fmt.Sprint(v...))
+	os.Exit(1)
 }
 
 func Fatalf(format string, v ...any) {
-	log.Fatalf(format, v...)
+	log.Output(2, fmt.Sprintf(format, v...))
+	os.Exit(1)
 }
 
 func Fatalln(v ...any) {
-	log.Fatalln(v...)
+	log.Output(2, fmt.Sprintln(v...))
+	os.Exit(1)
 }
 
 func Debug(v ...any) {
 	if config.Debug {
-		Log(v...)
+		log.Output(2, fmt.Sprint(v...))
 	}
 }
 
 func Debugf(format string, v ...any) {
 	if config.Debug {
-		Logf(format, v...)
+		log.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
 func Debugln(v ...any) {
 	if config.Debug {
-		Logln(v...)
+		log.Output(2, fmt.Sprintln(v...))
 	}
 }
