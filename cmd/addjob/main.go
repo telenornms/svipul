@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"os"
+	"flag"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/telenornms/tpoll"
 )
+
+var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")
 
 func main() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
@@ -36,19 +39,20 @@ func main() {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	if len(os.Args) < 3 {
+	flag.Parse()
+//	sleeptime, err := time.ParseDuration(os.Args[1])
+//	if err != nil {
+//		tpoll.Fatalf("unable to parse delay-time: %s", err)
+//	}
+	var bs [][]byte
+	args := flag.Args()
+	if len(os.Args) < 1 {
 		tpoll.Fatalf("no order-file supplied")
 	}
-	sleeptime, err := time.ParseDuration(os.Args[1])
-	if err != nil {
-		tpoll.Fatalf("unable to parse delay-time: %s", err)
-	}
-	var bs [][]byte
-	for i := 2; i < len(os.Args); i++ {
-		b, err := os.ReadFile(os.Args[i])
+	for _, fil := range args {
+		b, err := os.ReadFile(fil)
 		if err != nil {
-			tpoll.Fatalf("failed to read %s", os.Args[i])
+			tpoll.Fatalf("failed to read %s", fil)
 		}
 		bs = append(bs, b)
 	}
@@ -69,11 +73,11 @@ func main() {
 			}
 			tpoll.Logf("Sent %d bytes", len(b))
 		}
-		if sleeptime < 0 {
+		if *sleeptime < 0 {
 			tpoll.Logf("negative sleeptime, exiting after 1 publish")
 			os.Exit(0)
 		}
 		tpoll.Logf("Sleeping %s", sleeptime)
-		time.Sleep(sleeptime)
+		time.Sleep(*sleeptime)
 	}
 }
