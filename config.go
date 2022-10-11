@@ -21,23 +21,22 @@
  * 02110-1301  USA
  */
 
-package config
+package tpoll
 
-/*
-Package config provides a basis for configuring the tpoller.
+type conf struct {
+	Workers    int
+	Debug      bool
+	MibPaths   []string
+	MibModules []string
+}
 
-Since most of the config is supposed to be redundant and instead come from
-a database on demand, so far, this package is extremely trivial.
-
-Oh, and also, so far, it doesn't actually do anything but provide
-hard-coded defaults.
-*/
-
-var Debug = true
-var MibPaths = []string{"mibs/modules"}
-var MibModules = []string{
-	"SNMPv2-MIB",
-	"ENTITY-MIB",
-	"IF-MIB",
-	"IP-MIB",
-	"IP-FORWARD-MIB"}
+var Config conf = conf{
+	Debug:    true,
+	MibPaths: []string{"mibs/modules"},
+	MibModules: []string{
+		"SNMPv2-MIB",
+		"ENTITY-MIB",
+		"IF-MIB",
+		"IP-MIB",
+		"IP-FORWARD-MIB"},
+}

@@ -22,7 +22,7 @@ func (s *Session) init() error {
 		Community:          s.Community,
 		Version:            gosnmp.Version2c,
 		Timeout:            time.Duration(3) * time.Second,
-		Retries:            3,
+		Retries:            1,
 		ExponentialTimeout: true,
 		MaxOids:            gosnmp.MaxOids,
 	}
@@ -42,7 +42,7 @@ func (s *Session) Finalize() {
 // Get uses SNMP Get to fetch precise OIDs. it will split it into
 // multiple requests if there are more nodes than max-oids.a
 func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
-	if len (nodes) < 1 {
+	if len(nodes) < 1 {
 		return fmt.Errorf("refusing to carry out GET for 0 nodes")
 	}
 	oids := make([]string, 0, len(nodes))

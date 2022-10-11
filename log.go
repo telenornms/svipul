@@ -35,15 +35,19 @@ when it's disabled.
 */
 
 import (
-	"github.com/telenornms/tpoll/config"
+	"fmt"
 	"log"
 	"os"
-	"fmt"
 )
 
-func init() {
+func Init() {
 	d := log.Default()
-	d.SetFlags(log.Ltime | log.Lshortfile)
+	if Config.Debug {
+		d.SetFlags(log.Ltime | log.Lshortfile)
+	} else {
+		d.SetFlags(log.Ltime)
+	}
+
 }
 
 func Log(v ...any) {
@@ -74,19 +78,19 @@ func Fatalln(v ...any) {
 }
 
 func Debug(v ...any) {
-	if config.Debug {
+	if Config.Debug {
 		log.Output(2, fmt.Sprint(v...))
 	}
 }
 
 func Debugf(format string, v ...any) {
-	if config.Debug {
+	if Config.Debug {
 		log.Output(2, fmt.Sprintf(format, v...))
 	}
 }
 
 func Debugln(v ...any) {
-	if config.Debug {
+	if Config.Debug {
 		log.Output(2, fmt.Sprintln(v...))
 	}
 }

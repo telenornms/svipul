@@ -60,16 +60,19 @@ func (c *Config) Init() error {
 	gosmi.Init()
 
 	for _, path := range c.Paths {
-		tpoll.Logf("mib path added: %s", path)
+		tpoll.Debugf("mib path added: %s", path)
 		gosmi.AppendPath(path)
 	}
+	loaded := 0
 	for _, module := range c.Modules {
 		moduleName, err := gosmi.LoadModule(module)
 		if err != nil {
 			return fmt.Errorf("module load failed: %w", err)
 		}
-		tpoll.Logf("Loaded SMI module %s\n", moduleName)
+		tpoll.Debugf("Loaded SMI module %s", moduleName)
+		loaded++
 	}
+	tpoll.Logf("Loaded %d SMI modules", loaded)
 	return nil
 }
 

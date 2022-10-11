@@ -28,6 +28,7 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -40,7 +41,6 @@ import (
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/tpoll"
-	"github.com/telenornms/tpoll/config"
 	"github.com/telenornms/tpoll/omap"
 	"github.com/telenornms/tpoll/session"
 	"github.com/telenornms/tpoll/smierte"
@@ -73,8 +73,8 @@ func (e *Engine) Init(sc string) error {
 	}
 	e.OMap = make(map[string]*omap.OMap)
 	mib := &smierte.Config{}
-	mib.Paths = config.MibPaths
-	mib.Modules = config.MibModules
+	mib.Paths = tpoll.Config.MibPaths
+	mib.Modules = tpoll.Config.MibModules
 	err = mib.Init()
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
@@ -89,17 +89,17 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 	if e.OMap[target] != nil {
 		return e.OMap[target], nil
 	}
-	e.OMap[target], err = omap.BuildOMap(sess, e.Mib, "ifName")
+	o, err := omap.BuildOMap(sess, e.Mib, "ifName")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IF-map: %w", err)
 	}
+	e.OMap[target] = o
 	return e.OMap[target], nil
 }
 
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
 func (e *Engine) Run(o Order) error {
-	// target string, oids []string, emap bool) error {
 	_, loaded := e.Targets.LoadOrStore(o.Target, 1)
 	if loaded {
 		return fmt.Errorf("target still locked, refusing to start more runs")
@@ -178,7 +178,7 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 		} else {
 			var trailer string
 			if len(n.Numeric) >= len(pdu.Name)-1 || (n.Qualified != "" && pdu.Name == n.Qualified[1:]) {
-				tpoll.Logf("ish: %s vs %v", n.Numeric, pdu)
+				tpoll.Logf("trailer-issues: %s vs %v", n.Numeric, pdu)
 				trailer = "0"
 			} else {
 				trailer = pdu.Name[len(n.Numeric)+1:][1:]
@@ -227,6 +227,7 @@ type Order struct {
 	EMap     bool
 	Elements []string
 	Mode     Mode
+	delivery amqp.Delivery
 }
 
 func (m *Mode) UnmarshalJSON(b []byte) error {
@@ -257,7 +258,7 @@ func (m Mode) MarshalJSON() ([]byte, error) {
 	case GetElements:
 		return []byte("\"GetElements\""), nil
 	default:
-		return []byte("\"\""), fmt.Errorf("invalud mode %d!", m)
+		return []byte("\"\""), fmt.Errorf("invalid mode %d!", m)
 	}
 }
 
@@ -266,30 +267,48 @@ func (o Order) String() string {
 }
 
 func (e *Engine) Listener(c chan Order, name string) {
-	tpoll.Logf("Starting listener %s...", name)
+	tpoll.Debugf("Starting listener %s...", name)
 	for order := range c {
 		now := time.Now()
 		err := e.Run(order)
 		since := time.Since(now).Round(time.Millisecond * 10)
 		if err != nil {
-			tpoll.Logf("%2s: %-15s FAIL %s: %s", name, order, since.String(), err)
+			requeue := true
+			if order.delivery.Redelivered {
+				requeue = false
+			}
+			tpoll.Logf("[%2s]: %-15s FAIL %s: %s (requeue: %v)", name, order, since.String(), err, requeue)
+			err2 := order.delivery.Nack(false, requeue)
+			if err2 != nil {
+				tpoll.Logf("NAck failed: %s", err2)
+			}
+
 		} else {
-			tpoll.Logf("%2s: %-15s OK %s", name, order, since.String())
+			tpoll.Logf("[%2s]: %-15s OK %s", name, order, since.String())
+			err2 := order.delivery.Ack(false)
+			if err2 != nil {
+				tpoll.Logf("Ack failed: %s", err2)
+			}
 		}
 	}
 }
 
 func main() {
+	flag.BoolVar(&tpoll.Config.Debug, "debug", true, "enable debug")
+	flag.IntVar(&tpoll.Config.Workers, "workers", 10, "number of workers to run in parallell")
+	flag.Parse()
+	tpoll.Init()
 	e := Engine{}
 	err := e.Init("skogul")
 	if err != nil {
 		tpoll.Fatalf("Couldn't initialize engine: %s", err)
 	}
-	c := make(chan Order, 1)
-	for i := 0; i < 10; i++ {
+	c := make(chan Order, 0)
+	for i := 0; i < tpoll.Config.Workers; i++ {
 		go e.Listener(c, fmt.Sprintf("%d", i))
-		time.Sleep(time.Microsecond * 10)
+		time.Sleep(time.Microsecond * 20)
 	}
+	tpoll.Logf("Started %d workers", tpoll.Config.Workers)
 
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
@@ -302,6 +321,10 @@ func main() {
 		tpoll.Fatalf("can't get channel: %s", err)
 	}
 	defer ch.Close()
+	err = ch.Qos(tpoll.Config.Workers+1, 0, true)
+	if err != nil {
+		tpoll.Fatalf("can't set qos: %s", err)
+	}
 
 	q, err := ch.QueueDeclare(
 		"tpoll", // name
@@ -318,7 +341,7 @@ func main() {
 	msgs, err := ch.Consume(
 		q.Name, // queue
 		"",     // consumer
-		true,   // auto-ack
+		false,  // auto-ack
 		false,  // exclusive
 		false,  // no-local
 		false,  // no-wait
@@ -333,8 +356,11 @@ func main() {
 		err = json.Unmarshal(d.Body, &order)
 		if err != nil {
 			tpoll.Logf("order json unmarshal: %s", err)
+			d.Reject(false)
 			continue
 		}
+		order.delivery = d
 		c <- order
 	}
+	tpoll.Logf("Reached the end. Connection probably dead. Some day, we'll handle this, but not today.")
 }

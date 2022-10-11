@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"os"
 	"flag"
+	"fmt"
+	"os"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -11,6 +12,7 @@ import (
 )
 
 var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")
+var expire = flag.Duration("ttl", 10*time.Second, "expiry time. Minimum: 1ms")
 
 func main() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
@@ -40,10 +42,9 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	flag.Parse()
-//	sleeptime, err := time.ParseDuration(os.Args[1])
-//	if err != nil {
-//		tpoll.Fatalf("unable to parse delay-time: %s", err)
-//	}
+	if expire.Milliseconds() < 1 {
+		tpoll.Fatalf("TTL must be at least 1ms")
+	}
 	var bs [][]byte
 	args := flag.Args()
 	if len(os.Args) < 1 {
@@ -56,6 +57,8 @@ func main() {
 		}
 		bs = append(bs, b)
 	}
+	ttl := fmt.Sprintf("%d", expire.Milliseconds())
+	tpoll.Debugf("expire: %s", ttl)
 	for {
 		for _, b := range bs {
 			err = ch.PublishWithContext(ctx,
@@ -65,7 +68,7 @@ func main() {
 				false,  // immediate
 				amqp.Publishing{
 					ContentType: "text/json",
-					Expiration:  "10000",
+					Expiration:  ttl,
 					Body:        []byte(b),
 				})
 			if err != nil {
