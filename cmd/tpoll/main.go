@@ -291,7 +291,7 @@ func main() {
 		time.Sleep(time.Microsecond * 10)
 	}
 
-	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.2:5672/")
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		tpoll.Fatalf("can't connect to broker: %s", err)
 	}

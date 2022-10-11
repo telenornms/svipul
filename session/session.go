@@ -42,6 +42,9 @@ func (s *Session) Finalize() {
 // Get uses SNMP Get to fetch precise OIDs. it will split it into
 // multiple requests if there are more nodes than max-oids.a
 func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
+	if len (nodes) < 1 {
+		return fmt.Errorf("refusing to carry out GET for 0 nodes")
+	}
 	oids := make([]string, 0, len(nodes))
 	originals := make([]string, 0, len(nodes))
 	for _, a := range nodes {
@@ -53,8 +56,8 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) err
 		oids = append(oids, numeric)
 		originals = append(originals, numeric)
 	}
-	if oids[0] == "." || originals[0] == "." {
-		return fmt.Errorf("corrupt oid-lookup, probably a bug. oids[0] is blank")
+	if len(oids) < 1 || oids[0] == "." || originals[0] == "." {
+		return fmt.Errorf("corrupt oid-lookup, probably a bug. oids[0] is blank: nodes: %#v", nodes)
 	}
 	runs := 0
 	for i := 0; i < len(oids); i += 50 {
@@ -82,8 +85,11 @@ func (s *Session) get(oids []string, cb func(pdu gosnmp.SnmpPDU) error) error {
 		return fmt.Errorf("response error: %s", result.Error)
 	}
 	for _, pdu := range result.Variables {
-		if pdu.Type == gosnmp.EndOfMibView || pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
+		if pdu.Type == gosnmp.EndOfMibView {
 			return fmt.Errorf("issues with pdu (oids: %v), type: %v, pdu: %v", oids, pdu.Type, pdu)
+		} else if pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
+			tpoll.Debugf("got no such object/no such instance when looking for oid. Ignoring. pdu: %v", pdu)
+			continue
 		}
 		found := false
 		for _, o := range originals {
