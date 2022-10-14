@@ -110,6 +110,7 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("session creation failed: %w", err)
 	}
 	defer sess.Finalize()
+	tpoll.Debugf("%s - starting run", o.Target)
 
 	t := Task{}
 	if o.EMap {
