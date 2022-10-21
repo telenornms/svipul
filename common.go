@@ -35,6 +35,7 @@ type Node struct {
 	Name      string
 	Numeric   string // I KNOW
 	Qualified string
+	Lookedup  bool // True if key was not a pure OID
 }
 
 // Walker is an interface for performing a BulkWalk, without having to

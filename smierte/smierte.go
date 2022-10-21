@@ -104,8 +104,10 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 		if err != nil {
 			return ret, fmt.Errorf("unable to resolve OID to string: %w", err)
 		}
+		ret.Lookedup = false
 		n, err = gosmi.GetNodeByOID(oid)
 	} else {
+		ret.Lookedup = true
 		n, err = gosmi.GetNode(item)
 	}
 	if err != nil {

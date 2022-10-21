@@ -1,0 +1,8 @@
+{
+	"target": "ex-lol5",
+	"mode": "GetElements",
+	"oids": ["ifHighSpeed", "ifType", "ifName", "ifDescr", "ifAlias", "ifOperStatus", "ifAdminStatus", "ifLastChange", "ifPhysAddress", "ifHCInOctets", "ifHCOutOctets", "ifInDiscards", "ifOutDiscards", "ifInErrors", "ifOutErrors", "ifInUnknownProtos", "ifOutQLen" ],
+	"elements": ["(xe)-[0-9/]*$","ge-0/0/47$"],
+	"emap": true,
+	"result": "oid"
+}

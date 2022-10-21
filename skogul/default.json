@@ -1,7 +1,7 @@
 {
 	"handlers": {
 		"tpoll": {
-			"sender": "measure",
+			"sender": "print",
 			"transformers": ["now"],
 			"parser": "json"
 		}

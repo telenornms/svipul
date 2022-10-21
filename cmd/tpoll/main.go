@@ -51,6 +51,7 @@ type Task struct {
 	OMap   *omap.OMap      // Engine populates uniquely for each target
 	Mib    *smierte.Config // Engine populates, but same instance
 	Metric skogul.Metric   // New metric for each run.
+	Result ResolveM
 }
 
 // Engine is semi-global state for SNMP, including a "cached" OMap ... map
@@ -120,6 +121,7 @@ func (e *Engine) Run(o Order) error {
 		}
 	}
 	t.Mib = e.Mib
+	lookedup := false
 	m := make([]tpoll.Node, 0, len(o.Oids))
 	for _, arg := range o.Oids {
 		nym, err := e.Mib.Lookup(arg)
@@ -127,6 +129,18 @@ func (e *Engine) Run(o Order) error {
 			fmt.Errorf("unable to look up oid: %w", err)
 		}
 		m = append(m, nym)
+		if nym.Lookedup {
+			lookedup = true
+		}
+	}
+	if o.Result == Auto {
+		if lookedup {
+			t.Result = Resolve
+		} else {
+			t.Result = OID
+		}
+	} else {
+		t.Result = o.Result
 	}
 	if len(m) < 1 {
 		return fmt.Errorf("trying to start rul with 0 oids?")
@@ -169,7 +183,12 @@ func (e *Engine) Run(o Order) error {
 	return nil
 }
 
-func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
+// saveNode stores a result
+func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
+	if t.Result == OID {
+		t.Metric.Data[pdu.Name] = v
+		return nil
+	}
 	var name = pdu.Name
 	var element = ""
 	if t.Mib != nil {
@@ -200,18 +219,76 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	if t.Metric.Data[element] == nil {
 		t.Metric.Data[element] = make(map[string]interface{})
 	}
+	(t.Metric.Data[element].(map[string]interface{}))[name] = v
+	return nil
+}
+func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
+	var v interface{}
 	switch pdu.Type {
 	case gosnmp.OctetString:
 		b := pdu.Value.([]byte)
-		(t.Metric.Data[element].(map[string]interface{}))[name] = string(b)
+		v = string(b)
 	case gosnmp.Boolean:
-		b := pdu.Value.(bool)
-		(t.Metric.Data[element].(map[string]interface{}))[name] = b
+		v = pdu.Value.(bool)
 	default:
-		(t.Metric.Data[element].(map[string]interface{}))[name] = gosnmp.ToBigInt(pdu.Value)
-		//(t.Metric.Data[element].(map[string]interface{}))[name+"Type"] = fmt.Sprintf("0x%02X", byte(pdu.Type))
+		v = gosnmp.ToBigInt(pdu.Value)
+	}
+	return t.saveNode(pdu, v)
+}
+
+type Order struct {
+	Target    string   // Host/target
+	Oids      []string // OIDs, also accepts logical names (e.g.: ifName)
+	EMap      bool     // Build element map, e.g.: map index to ifName. Currently only supports ifName
+	Elements  []string // Elemmts, if GetElements mode. Elements == interfaces (could be other in the future)
+	Mode      Mode     // What mode to use
+	Community string   // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
+	Result    ResolveM // Auto (default) = resolve based on input, OID = leave OIDs unresolved, Resolve = try to resolve
+	delivery  amqp.Delivery
+}
+
+func (o Order) String() string {
+	return o.Target
+}
+
+type ResolveM int
+
+const (
+	Auto ResolveM = iota
+	OID
+	Resolve
+)
+
+func (r *ResolveM) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	s = strings.ToLower(s)
+	switch s {
+	case "auto":
+		*r = Auto
+	case "oid":
+		*r = OID
+	case "resolve":
+		*r = Resolve
+	default:
+		return fmt.Errorf("invalid resolver mode: %s", s)
 	}
 	return nil
+}
+
+func (r ResolveM) MarshalJSON() ([]byte, error) {
+	switch r {
+	case Auto:
+		return []byte("\"Auto\""), nil
+	case OID:
+		return []byte("\"OID\""), nil
+	case Resolve:
+		return []byte("\"Resolve\""), nil
+	default:
+		return []byte("\"\""), fmt.Errorf("invalid resolve mode %d!", r)
+	}
 }
 
 type Mode int
@@ -221,15 +298,6 @@ const (
 	Get                     // Get just these oids
 	GetElements             // Get these specific oids, but per elements
 )
-
-type Order struct {
-	Target   string
-	Oids     []string
-	EMap     bool
-	Elements []string
-	Mode     Mode
-	delivery amqp.Delivery
-}
 
 func (m *Mode) UnmarshalJSON(b []byte) error {
 	var s string
@@ -261,10 +329,6 @@ func (m Mode) MarshalJSON() ([]byte, error) {
 	default:
 		return []byte("\"\""), fmt.Errorf("invalid mode %d!", m)
 	}
-}
-
-func (o Order) String() string {
-	return o.Target
 }
 
 func (e *Engine) Listener(c chan Order, name string) {
