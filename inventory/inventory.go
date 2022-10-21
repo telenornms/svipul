@@ -30,16 +30,16 @@ a central database.
 package inventory
 
 import (
-"sync"
-"fmt"
+	"fmt"
 	"github.com/telenornms/tpoll"
+	"sync"
 )
 
 var targets sync.Map
 
 type Host struct {
-	Address		string
-	Community	string
+	Address   string
+	Community string
 }
 
 // LockHost acquires a host-level lock and relevant credentials. Must call

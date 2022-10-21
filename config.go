@@ -25,16 +25,16 @@ package tpoll
 
 type conf struct {
 	DefaultCommunity string
-	Workers    int
-	Debug      bool
-	MibPaths   []string
-	MibModules []string
+	Workers          int
+	Debug            bool
+	MibPaths         []string
+	MibModules       []string
 }
 
 var Config conf = conf{
 	DefaultCommunity: "public",
-	Debug:    true,
-	MibPaths: []string{"mibs/modules"},
+	Debug:            true,
+	MibPaths:         []string{"mibs/modules"},
 	MibModules: []string{
 		"SNMPv2-MIB",
 		"ENTITY-MIB",

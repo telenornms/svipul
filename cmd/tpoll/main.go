@@ -56,9 +56,9 @@ type Task struct {
 
 // Engine is semi-global state for SNMP, including a "cached" OMap ... map
 type Engine struct {
-	Skogul  *sconfig.Config // output
-	Mib     *smierte.Config // MIB
-	OMap    map[string]*omap.OMap // Caches/stores looked up/built omaps
+	Skogul *sconfig.Config       // output
+	Mib    *smierte.Config       // MIB
+	OMap   map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
 // Init reads configuration and whatnot for the engine
