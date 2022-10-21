@@ -1,5 +1,5 @@
 /*
- * tpoll config
+ * tpoll inventory
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -21,24 +21,41 @@
  * 02110-1301  USA
  */
 
-package tpoll
+/*
+Package inventory deals with inventory locking and syncing.
 
-type conf struct {
-	DefaultCommunity string
-	Workers    int
-	Debug      bool
-	MibPaths   []string
-	MibModules []string
+Today, this is mostly a dummy-package, but the intention is to sync it with
+a central database.
+*/
+package inventory
+
+import (
+"sync"
+"fmt"
+	"github.com/telenornms/tpoll"
+)
+
+var targets sync.Map
+
+type Host struct {
+	Address		string
+	Community	string
 }
 
-var Config conf = conf{
-	DefaultCommunity: "public",
-	Debug:    true,
-	MibPaths: []string{"mibs/modules"},
-	MibModules: []string{
-		"SNMPv2-MIB",
-		"ENTITY-MIB",
-		"IF-MIB",
-		"IP-MIB",
-		"IP-FORWARD-MIB"},
+// LockHost acquires a host-level lock and relevant credentials. Must call
+// h.Unlock() when done.
+func LockHost(t string) (Host, error) {
+	h := Host{}
+	_, loaded := targets.LoadOrStore(t, 1)
+	if loaded {
+		return h, fmt.Errorf("target still locked, refusing to start more runs")
+	}
+	h.Address = t
+	h.Community = tpoll.Config.DefaultCommunity
+	return h, nil
+}
+
+// Unlock releases the host-level lock.
+func (h *Host) Unlock() {
+	targets.Delete(h.Address)
 }

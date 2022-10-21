@@ -33,7 +33,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gosnmp/gosnmp"
@@ -41,6 +40,7 @@ import (
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/tpoll"
+	"github.com/telenornms/tpoll/inventory"
 	"github.com/telenornms/tpoll/omap"
 	"github.com/telenornms/tpoll/session"
 	"github.com/telenornms/tpoll/smierte"
@@ -58,7 +58,6 @@ type Task struct {
 type Engine struct {
 	Skogul  *sconfig.Config // output
 	Mib     *smierte.Config // MIB
-	Targets sync.Map
 	OMap    map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
@@ -101,12 +100,16 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
 func (e *Engine) Run(o Order) error {
-	_, loaded := e.Targets.LoadOrStore(o.Target, 1)
-	if loaded {
-		return fmt.Errorf("target still locked, refusing to start more runs")
+	host, err := inventory.LockHost(o.Target)
+	if err != nil {
+		return fmt.Errorf("unable to acquire host lock: %w", err)
 	}
-	defer e.Targets.Delete(o.Target)
-	sess, err := session.NewSession(o.Target)
+	defer host.Unlock()
+	community := host.Community
+	if o.Community != "" {
+		community = o.Community
+	}
+	sess, err := session.NewSession(o.Target, community)
 	if err != nil {
 		return fmt.Errorf("session creation failed: %w", err)
 	}
@@ -242,7 +245,7 @@ type Order struct {
 	EMap      bool     // Build element map, e.g.: map index to ifName. Currently only supports ifName
 	Elements  []string // Elemmts, if GetElements mode. Elements == interfaces (could be other in the future)
 	Mode      Mode     // What mode to use
-	Community string   // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
+	Community string   `json:,omitempty` // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
 	Result    ResolveM // Auto (default) = resolve based on input, OID = leave OIDs unresolved, Resolve = try to resolve
 	delivery  amqp.Delivery
 }

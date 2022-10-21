@@ -167,10 +167,10 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error
 	return nil
 }
 
-func NewSession(target string) (*Session, error) {
+func NewSession(target string, community string) (*Session, error) {
 	var s Session
 	s.Target = target
-	s.Community = "public"
+	s.Community = community
 	err := s.init()
 	if err != nil {
 		return nil, err
