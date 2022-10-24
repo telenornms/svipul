@@ -87,7 +87,12 @@ func (e *Engine) Init(sc string) error {
 func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, error) {
 	var err error
 	if e.OMap[target] != nil {
-		return e.OMap[target], nil
+		if time.Since(e.OMap[target].Timestamp) > tpoll.Config.MaxMapAge {
+			tpoll.Logf("Deleting aged out omap for %s", target)
+			e.OMap[target] = nil
+		} else {
+			return e.OMap[target], nil
+		}
 	}
 	o, err := omap.BuildOMap(sess, e.Mib, "ifName")
 	if err != nil {

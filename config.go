@@ -23,18 +23,24 @@
 
 package tpoll
 
+import (
+	"time"
+	)
+
 type conf struct {
 	DefaultCommunity string
 	Workers          int
 	Debug            bool
 	MibPaths         []string
 	MibModules       []string
+	MaxMapAge	 time.Duration
 }
 
 var Config conf = conf{
 	DefaultCommunity: "public",
 	Debug:            true,
 	MibPaths:         []string{"mibs/modules"},
+	MaxMapAge:	time.Second*60,
 	MibModules: []string{
 		"SNMPv2-MIB",
 		"ENTITY-MIB",
