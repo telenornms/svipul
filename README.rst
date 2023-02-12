@@ -3,7 +3,12 @@ tpoll
 
 Tpoll is the beginning of a new framework for polling network devices.
 
-It is currently completely non-functional and internal.
+It is currently able to:
+
+- Poll a network device based on orders from a RabbitMQ queue
+- Scale horizontally I suppose?
+- Do "entity maps" to map ifIndex to names, including ahead of time
+- Report back using Skogul ( https://github.com/telenornms/skogul )
 
 The basic goal is to have a massively scalable solution that can be
 dynamically configured at run-time, and ultimately handle ALL
