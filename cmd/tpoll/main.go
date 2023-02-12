@@ -251,6 +251,7 @@ type Order struct {
 	Elements  []string // Elemmts, if GetElements mode. Elements == interfaces (could be other in the future)
 	Mode      Mode     // What mode to use
 	Community string   `json:,omitempty` // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
+	ID	string	`json:,omitempty`
 	Result    ResolveM // Auto (default) = resolve based on input, OID = leave OIDs unresolved, Resolve = try to resolve
 	delivery  amqp.Delivery
 }

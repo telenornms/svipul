@@ -1,9 +1,16 @@
 {
 	"handlers": {
 		"tpoll": {
-			"sender": "measure",
+			"sender": "print",
 			"transformers": ["now"],
 			"parser": "json"
+		}
+	},
+	"senders": {
+		"print": {
+			"type": "file",
+			"encoder": "prettyskogul",
+			"path": "tofile"
 		}
 	}
 }
