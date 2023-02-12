@@ -3,6 +3,9 @@ tpoll
 
 Tpoll is the beginning of a new framework for polling network devices.
 
+While it works, if you don't know me personally, you PROBABLY don't want to
+test this yet. Name is likely to change too.
+
 It is currently able to:
 
 - Poll a network device based on orders from a RabbitMQ queue
