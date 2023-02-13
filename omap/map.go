@@ -26,8 +26,8 @@ package omap
 import (
 	"fmt"
 	"github.com/gosnmp/gosnmp"
-	"github.com/telenornms/tpoll"
-	"github.com/telenornms/tpoll/smierte"
+	"github.com/telenornms/svipul"
+	"github.com/telenornms/svipul/smierte"
 	"strconv"
 	"time"
 )

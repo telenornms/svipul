@@ -31,7 +31,7 @@ package inventory
 
 import (
 	"fmt"
-	"github.com/telenornms/tpoll"
+	"github.com/telenornms/svipul"
 	"sync"
 )
 

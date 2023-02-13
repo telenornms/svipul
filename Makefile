@@ -3,11 +3,11 @@ VERSION_NO=$(shell echo ${GIT_DESCRIBE} | sed s/[v-]//g)
 OS:=$(shell uname -s | tr A-Z a-z)
 ARCH:=$(shell uname -m)
 
-all: tpoll addjob
+all: worker addjob
 
-tpoll: $(wildcard *.go */*.go */*/*.go)
+worker: $(wildcard *.go */*.go */*/*.go)
 	@echo 🤸 go build !
-	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o tpoll ./cmd/tpoll
+	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o worker ./cmd/worker
 
 addjob: $(wildcard *.go */*.go */*/*.go)
 	@echo 🤸 go build addjobb !

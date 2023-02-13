@@ -1,4 +1,4 @@
-module github.com/telenornms/tpoll
+module github.com/telenornms/svipul
 
 go 1.18
 

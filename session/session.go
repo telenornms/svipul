@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gosnmp/gosnmp"
-	"github.com/telenornms/tpoll"
+	"github.com/telenornms/svipul"
 )
 
 type Session struct {

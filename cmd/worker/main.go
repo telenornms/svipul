@@ -39,11 +39,11 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
-	"github.com/telenornms/tpoll"
-	"github.com/telenornms/tpoll/inventory"
-	"github.com/telenornms/tpoll/omap"
-	"github.com/telenornms/tpoll/session"
-	"github.com/telenornms/tpoll/smierte"
+	"github.com/telenornms/svipul"
+	"github.com/telenornms/svipul/inventory"
+	"github.com/telenornms/svipul/omap"
+	"github.com/telenornms/svipul/session"
+	"github.com/telenornms/svipul/smierte"
 )
 
 // Task is tied to a single SNMP run/walk and a single host

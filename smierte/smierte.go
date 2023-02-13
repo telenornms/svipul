@@ -38,7 +38,7 @@ import (
 
 	"github.com/sleepinggenius2/gosmi"
 	"github.com/sleepinggenius2/gosmi/types"
-	"github.com/telenornms/tpoll"
+	"github.com/telenornms/svipul"
 )
 
 // Config provides configuration basis for the smierte package, and

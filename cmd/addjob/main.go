@@ -8,7 +8,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/telenornms/tpoll"
+	"github.com/telenornms/svipul"
 )
 
 var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")

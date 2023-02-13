@@ -1,7 +1,7 @@
-tpoll
-=====
+Svipul
+======
 
-Tpoll is the beginning of a new framework for polling network devices.
+Svipul is the beginning of a new framework for polling network devices.
 
 While it works, if you don't know me personally, you PROBABLY don't want to
 test this yet. Name is likely to change too.
@@ -43,3 +43,9 @@ as a reference design where one need not implement all of it for it to be
 useful. E.g.: You can get away with a simple poller, a shell script for
 scheduler and skogul writing to influxDB directly if need be, using what
 already exists today.
+
+Name
+----
+
+Svipul is a Valkyrie. Valkyries are cool. Working name until recently was
+tpoll, but it just changed.
