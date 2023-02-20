@@ -5,11 +5,11 @@ ARCH:=$(shell uname -m)
 
 all: worker addjob
 
-worker: $(wildcard *.go */*.go */*/*.go)
+worker: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build !
 	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o worker ./cmd/worker
 
-addjob: $(wildcard *.go */*.go */*/*.go)
+addjob: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build addjobb !
 	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o addjob ./cmd/addjob
 
