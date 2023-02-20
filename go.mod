@@ -1,6 +1,6 @@
 module github.com/telenornms/svipul
 
-go 1.18
+go 1.20
 
 require (
 	github.com/gosnmp/gosnmp v1.35.0
