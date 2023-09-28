@@ -25,7 +25,7 @@ package tpoll
 
 import (
 	"time"
-	)
+)
 
 type conf struct {
 	DefaultCommunity string
@@ -33,14 +33,14 @@ type conf struct {
 	Debug            bool
 	MibPaths         []string
 	MibModules       []string
-	MaxMapAge	 time.Duration
+	MaxMapAge        time.Duration
 }
 
 var Config conf = conf{
 	DefaultCommunity: "public",
 	Debug:            true,
 	MibPaths:         []string{"mibs/modules"},
-	MaxMapAge:	time.Second*60,
+	MaxMapAge:        time.Second * 60,
 	MibModules: []string{
 		"SNMPv2-MIB",
 		"ENTITY-MIB",

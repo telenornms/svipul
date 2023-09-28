@@ -3,11 +3,11 @@
 		"tpoll": {
 			"sender": "print",
 			"transformers": ["now"],
-			"parser": "json"
+			"parser": "skogul"
 		}
 	},
 	"senders": {
-		"print": {
+		"xprint": {
 			"type": "file",
 			"encoder": "prettyskogul",
 			"path": "tofile"

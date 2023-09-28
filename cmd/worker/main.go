@@ -134,7 +134,7 @@ func (e *Engine) Run(o Order) error {
 	for _, arg := range o.Oids {
 		nym, err := e.Mib.Lookup(arg)
 		if err != nil {
-			fmt.Errorf("unable to look up oid: %w", err)
+			return fmt.Errorf("unable to look up oid: %w", err)
 		}
 		m = append(m, nym)
 		if nym.Lookedup {
@@ -154,7 +154,10 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("trying to start rul with 0 oids?")
 	}
 	t.Metric.Metadata = make(map[string]interface{})
-	t.Metric.Metadata["order"] = o
+	t.Metric.Metadata["target"] = o.Target
+	if o.ID != "" {
+		t.Metric.Metadata["id"] = o.ID
+	}
 	t.Metric.Data = make(map[string]interface{})
 	if o.Mode == GetElements {
 		nym := make([]tpoll.Node, 0, len(m)*len(o.Elements))
@@ -250,8 +253,8 @@ type Order struct {
 	EMap      bool     // Build element map, e.g.: map index to ifName. Currently only supports ifName
 	Elements  []string // Elemmts, if GetElements mode. Elements == interfaces (could be other in the future)
 	Mode      Mode     // What mode to use
-	Community string   `json:,omitempty` // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
-	ID	string	`json:,omitempty`
+	Community string   `json:",omitempty"` // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
+	ID        string   `json:",omitempty"`
 	Result    ResolveM // Auto (default) = resolve based on input, OID = leave OIDs unresolved, Resolve = try to resolve
 	delivery  amqp.Delivery
 }

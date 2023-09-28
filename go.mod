@@ -4,9 +4,9 @@ go 1.20
 
 require (
 	github.com/gosnmp/gosnmp v1.35.0
-	github.com/rabbitmq/amqp091-go v1.5.0
+	github.com/rabbitmq/amqp091-go v1.8.1
 	github.com/sleepinggenius2/gosmi v0.4.4
-	github.com/telenornms/skogul v0.21.0
+	github.com/telenornms/skogul v0.25.1
 )
 
 require (
@@ -33,9 +33,9 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/segmentio/kafka-go v0.4.32 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
-	golang.org/x/crypto v0.5.0 // indirect
-	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/crypto v0.12.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
