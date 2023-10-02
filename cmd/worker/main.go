@@ -102,6 +102,12 @@ func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, erro
 	return e.OMap[target], nil
 }
 
+func (e *Engine) ClearOmap(target string) error {
+	tpoll.Logf("Deleting omap for %s on request", target)
+	delete (e.OMap, target)
+	return nil
+}
+
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
 func (e *Engine) Run(o Order) error {
@@ -110,6 +116,9 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("unable to acquire host lock: %w", err)
 	}
 	defer host.Unlock()
+	if o.Mode == ClearMap {
+		return e.ClearOmap(o.Target)
+	}
 	community := host.Community
 	if o.Community != "" {
 		community = o.Community
@@ -121,6 +130,18 @@ func (e *Engine) Run(o Order) error {
 	defer sess.Finalize()
 	tpoll.Debugf("%s - starting run", o.Target)
 
+	if o.Mode == BuildMap {
+		err := e.ClearOmap(o.Target)
+		if err != nil {
+			return fmt.Errorf("unable to clear omap: %w", err)
+		}
+		_, err = e.GetOmap(o.Target, sess)
+		if err != nil {
+			return fmt.Errorf("unable to build omap: %w", err)
+		}
+		return nil
+	}
+
 	t := Task{}
 	if o.EMap {
 		t.OMap, err = e.GetOmap(o.Target, sess)
@@ -128,6 +149,7 @@ func (e *Engine) Run(o Order) error {
 			return fmt.Errorf("failed to build IF-map: %w", err)
 		}
 	}
+
 	t.Mib = e.Mib
 	lookedup := false
 	m := make([]tpoll.Node, 0, len(o.Oids))
@@ -309,6 +331,8 @@ const (
 	Walk        Mode = iota // Do a walk
 	Get                     // Get just these oids
 	GetElements             // Get these specific oids, but per elements
+	BuildMap		// Build an OMap
+	ClearMap		// Clear the OMap cache
 )
 
 func (m *Mode) UnmarshalJSON(b []byte) error {
@@ -324,6 +348,10 @@ func (m *Mode) UnmarshalJSON(b []byte) error {
 		*m = Get
 	case "getelements":
 		*m = GetElements
+	case "buildmap":
+		*m = BuildMap
+	case "clearmap":
+		*m = ClearMap
 	default:
 		return fmt.Errorf("invalid mode: %s", s)
 	}
@@ -338,6 +366,10 @@ func (m Mode) MarshalJSON() ([]byte, error) {
 		return []byte("\"Get\""), nil
 	case GetElements:
 		return []byte("\"GetElements\""), nil
+	case BuildMap:
+		return []byte("\"BuildMap\""), nil
+	case ClearMap:
+		return []byte("\"ClearMap\""), nil
 	default:
 		return []byte("\"\""), fmt.Errorf("invalid mode %d!", m)
 	}
