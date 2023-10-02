@@ -12,6 +12,7 @@ import (
 )
 
 var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")
+var delay = flag.Duration("delay", -time.Second, "delay between individual orders, negative value means only one execution")
 var expire = flag.Duration("ttl", 10*time.Second, "expiry time. Minimum: 1ms")
 
 func main() {
@@ -60,7 +61,7 @@ func main() {
 	ttl := fmt.Sprintf("%d", expire.Milliseconds())
 	tpoll.Debugf("expire: %s", ttl)
 	for {
-		for _, b := range bs {
+		for idx, b := range bs {
 			err = ch.PublishWithContext(ctx,
 				"",     // exchange
 				q.Name, // routing key
@@ -75,6 +76,10 @@ func main() {
 				tpoll.Fatalf("failed to publish a message: %s", err)
 			}
 			tpoll.Logf("Sent %d bytes", len(b))
+			if *delay > 0 && idx < len(bs)-1 {
+				tpoll.Logf("Sleeping before next order: %s", delay)
+				time.Sleep(*delay)
+			}
 		}
 		if *sleeptime < 0 {
 			tpoll.Logf("negative sleeptime, exiting after 1 publish")
