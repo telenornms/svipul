@@ -28,10 +28,10 @@ package main
 
 import (
 	"encoding/json"
+	"math/rand"
 	"flag"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -40,6 +40,8 @@ import (
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/svipul"
+//	"github.com/sleepinggenius2/gosmi/models"
+	"github.com/sleepinggenius2/gosmi/types"
 	"github.com/telenornms/svipul/inventory"
 	"github.com/telenornms/svipul/omap"
 	"github.com/telenornms/svipul/session"
@@ -56,9 +58,9 @@ type Task struct {
 
 // Engine is semi-global state for SNMP, including a "cached" OMap ... map
 type Engine struct {
-	Skogul *sconfig.Config       // output
-	Mib    *smierte.Config       // MIB
-	OMap   map[string]*omap.OMap // Caches/stores looked up/built omaps
+	Skogul *sconfig.Config                  // output
+	Mib    *smierte.Config                  // MIB
+	OMap   map[string]map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
 // Init reads configuration and whatnot for the engine
@@ -71,7 +73,7 @@ func (e *Engine) Init(sc string) error {
 	if e.Skogul.Handlers["tpoll"] == nil {
 		return fmt.Errorf("missing tpoll handler in skogul config")
 	}
-	e.OMap = make(map[string]*omap.OMap)
+	e.OMap = make(map[string]map[string]*omap.OMap)
 	mib := &smierte.Config{}
 	mib.Paths = tpoll.Config.MibPaths
 	mib.Modules = tpoll.Config.MibModules
@@ -84,32 +86,49 @@ func (e *Engine) Init(sc string) error {
 }
 
 // GetOmap builds an omap on demand, or returns an already built one
-func (e *Engine) GetOmap(target string, sess *session.Session) (*omap.OMap, error) {
+func (e *Engine) GetOmap(target string, key string, sess *session.Session) (*omap.OMap, error) {
 	var err error
-	if e.OMap[target] != nil {
-		if time.Since(e.OMap[target].Timestamp) > tpoll.Config.MaxMapAge {
+	if e.OMap[target][key] != nil {
+		if time.Since(e.OMap[target][key].Timestamp) > tpoll.Config.MaxMapAge {
 			tpoll.Logf("Deleting aged out omap for %s", target)
-			e.OMap[target] = nil
+			e.OMap[target][key] = nil
 		} else {
-			return e.OMap[target], nil
+			return e.OMap[target][key], nil
 		}
 	}
-	o, err := omap.BuildOMap(sess, e.Mib, "ifName")
+	o, err := omap.BuildOMap(sess, e.Mib, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IF-map: %w", err)
 	}
-	e.OMap[target] = o
-	return e.OMap[target], nil
+	if e.OMap[target] == nil {
+		e.OMap[target] = make(map[string]*omap.OMap)
+	}
+	e.OMap[target][key] = o
+	return e.OMap[target][key], nil
 }
 
-func (e *Engine) ClearOmap(target string) error {
-	tpoll.Logf("Deleting omap for %s on request", target)
-	delete (e.OMap, target)
+// ClearOmap clears/nukes/empties the map cache for a target/key combo. If
+// the key is blank, ALL maps for that target is cleared.
+func (e *Engine) ClearOmap(target string, key string) error {
+	if key == "" {
+		tpoll.Logf("Deleting all maps for %s on request", target)
+		delete(e.OMap, target)
+		return nil
+	}
+	if e.OMap[target] != nil {
+		tpoll.Logf("Deleting `%s'-map for %s on request", key, target)
+		delete(e.OMap[target], key)
+		return nil
+	}
+	tpoll.Logf("Map `%s' for %s not found while trying to clear chache. Nothing to do. Wohoo!", key, target)
 	return nil
 }
 
 // Run starts an SNMP session for a target and collects the specified oids,
 // if emap is true, it will use an oid/element map, building it on demand.
+//
+// TODO: This needs to be split up and possibly refactored. It's a bit of a
+// beast.
 func (e *Engine) Run(o Order) error {
 	host, err := inventory.LockHost(o.Target)
 	if err != nil {
@@ -117,8 +136,15 @@ func (e *Engine) Run(o Order) error {
 	}
 	defer host.Unlock()
 	if o.Mode == ClearMap {
-		return e.ClearOmap(o.Target)
+		return e.ClearOmap(o.Target, o.Key)
 	}
+	if o.Elements != nil && len(o.Elements) > 0 {
+		if o.Key == "" {
+			tpoll.Debugf("elements provided, but not key. Assuming ifName")
+			o.Key = "ifName"
+		}
+	}
+
 	community := host.Community
 	if o.Community != "" {
 		community = o.Community
@@ -131,11 +157,16 @@ func (e *Engine) Run(o Order) error {
 	tpoll.Debugf("%s - starting run", o.Target)
 
 	if o.Mode == BuildMap {
-		err := e.ClearOmap(o.Target)
+		if o.Key == "" {
+			tpoll.Debugf("Requested building of a map, but no key provided. Assuming ifName")
+			o.Key = "ifName"
+		}
+
+		err := e.ClearOmap(o.Target, o.Key)
 		if err != nil {
 			return fmt.Errorf("unable to clear omap: %w", err)
 		}
-		_, err = e.GetOmap(o.Target, sess)
+		_, err = e.GetOmap(o.Target, o.Key, sess)
 		if err != nil {
 			return fmt.Errorf("unable to build omap: %w", err)
 		}
@@ -143,8 +174,8 @@ func (e *Engine) Run(o Order) error {
 	}
 
 	t := Task{}
-	if o.EMap {
-		t.OMap, err = e.GetOmap(o.Target, sess)
+	if o.Key != "" {
+		t.OMap, err = e.GetOmap(o.Target, o.Key, sess)
 		if err != nil {
 			return fmt.Errorf("failed to build IF-map: %w", err)
 		}
@@ -189,7 +220,9 @@ func (e *Engine) Run(o Order) error {
 					match, _ := regexp.Match(e, []byte(idx))
 					if match {
 						eid := einner
-						nym = append(nym, tpoll.Node{Numeric: oid.Numeric + fmt.Sprintf(".%d", eid)})
+						nynode := oid
+						nynode.Numeric = nynode.Numeric + fmt.Sprintf(".%s", eid)
+						nym = append(nym, nynode)
 					}
 
 				}
@@ -204,7 +237,7 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("unsupported mode")
 	}
 	if err != nil {
-		return fmt.Errorf("walk failed: %w", err)
+		return fmt.Errorf("snmp get/walk failed: %w", err)
 	}
 	c := skogul.Container{}
 	c.Metrics = append(c.Metrics, &t.Metric)
@@ -236,11 +269,8 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 			} else {
 				trailer = pdu.Name[len(n.Numeric)+1:][1:]
 				if len(trailer) > 0 {
-					idxN64, _ := strconv.ParseInt(trailer, 10, 32)
-					idx := int(idxN64)
-
-					if t.OMap != nil && t.OMap.IdxToName[idx] != "" {
-						trailer = t.OMap.IdxToName[idx]
+					if t.OMap != nil && t.OMap.IdxToName[trailer] != "" {
+						trailer = t.OMap.IdxToName[trailer]
 					}
 				}
 			}
@@ -255,25 +285,87 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 	(t.Metric.Data[element].(map[string]interface{}))[name] = v
 	return nil
 }
-func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
+
+// bwCB is the callback used for each PDU received during an SNMP GET of
+// some sort. It just "decodes" the value and triggers storage.
+//
+// The decoding is a bit finnicky. We only want to use the "formatted"
+// stuff for types that require rendering, while numbers should be left
+// intact. And then there's OctetString where we DO want to use DisplayHint
+// if present, but NOT if it isn't present, because the default is
+// atrocious.
+func (t *Task) bwCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
 	var v interface{}
-	switch pdu.Type {
-	case gosnmp.OctetString:
-		b := pdu.Value.([]byte)
-		v = string(b)
-	case gosnmp.Boolean:
-		v = pdu.Value.(bool)
-	default:
-		v = gosnmp.ToBigInt(pdu.Value)
+	foo := node.Type.FormatValue(pdu.Value)
+	tpoll.Logf("t: %#v", node.Type.Name)
+	if node.Type.BaseType ==  types.BaseTypeUnknown ||
+		node.Type.BaseType == types.BaseTypeObjectIdentifier ||
+		node.Type.BaseType == types.BaseTypeEnum ||
+		node.Type.BaseType == types.BaseTypeBits ||
+		node.Type.BaseType == types.BaseTypePointer {
+		v = foo.Formatted
+	} else if (node.Type.BaseType == types.BaseTypeOctetString) {
+		if node.Type.Format == "" {
+			switch foo.Raw.(type) {
+				case string:
+					v = foo.Raw
+				case []uint8:
+					// This one is a bit iffy, since I
+					// don't know if there are
+					// problematic octet strings out
+					// there, but I _do_ know
+					// hrSWInstalledName will fail to
+					// render sensibly without it.
+					v = string(foo.Raw.([]uint8))
+				default:
+					v = foo.Formatted
+			}
+		} else {
+			v = foo.Formatted
+		}
+	} else {
+		v = pdu.Value
 	}
+
 	return t.saveNode(pdu, v)
 }
 
+// Order is the central object for kicking Svipul into action. An order
+// always operates on a target (a host/switch, either IP address or
+// hostname) and using a mode. Depending on the mode, Svipul can either
+// request OIDS from the target system, build table/element maps or clear
+// the map cache. There are more than one method of getting OIDS.
+//
+// OIDs can be provided either as a list of numeric IDs, or by the symbolic
+// names. E.g.: .1.3.6.1.2.1.1.5.0 is valid, but so is ifHCInOctets. At the
+// time of this writing, ifHCInOctets.10 is NOT valid, but that is planned
+// for the future.
+//
+// If the Elements array is populated, an element map will be used to fetch
+// oids for the matching elements. More plainly: Elements can match
+// interface names and then Svipul will build up GET requests for the
+// provided OIDs for each index.
+//
+// If Key is provided, that is used as the Key to build an element map. By
+// default, ifName is used, making the defaults suitable for looking up
+// OIDS under ifTable and ifXTable.
+//
+// Community is the community to use to connect to the host.
+//
+// ID is an optional identification which is not used by Svipul at all, but
+// included in the result to allow a caller to match the order to the
+// result.
+//
+// Result determines how the result is formatted. By default, it will try
+// to match the input. E.g.: If numeric OIDs were used in the input, that's
+// used in the output. If symbolic names were used, that's used for the
+// result by default. This behavior can be overridden by providing "oid" to
+// leave OIDs unresolved and "Resolve" to attempt to always resolve them.
 type Order struct {
 	Target    string   // Host/target
 	Oids      []string // OIDs, also accepts logical names (e.g.: ifName)
-	EMap      bool     // Build element map, e.g.: map index to ifName. Currently only supports ifName
-	Elements  []string // Elemmts, if GetElements mode. Elements == interfaces (could be other in the future)
+	Elements  []string // Elemnts, if GetElements mode. Elements == interfaces (could be other in the future)
+	Key       string   // Map key to use for looking up elements
 	Mode      Mode     // What mode to use
 	Community string   `json:",omitempty"` // Community to use, blank == figure it out yourself/use default (meaning depends on issuer)
 	ID        string   `json:",omitempty"`
@@ -331,8 +423,8 @@ const (
 	Walk        Mode = iota // Do a walk
 	Get                     // Get just these oids
 	GetElements             // Get these specific oids, but per elements
-	BuildMap		// Build an OMap
-	ClearMap		// Clear the OMap cache
+	BuildMap                // Build an OMap
+	ClearMap                // Clear the OMap cache
 )
 
 func (m *Mode) UnmarshalJSON(b []byte) error {
@@ -385,8 +477,14 @@ func (e *Engine) Listener(c chan Order, name string) {
 			requeue := true
 			if order.delivery.Redelivered {
 				requeue = false
-			}
+			} 
 			tpoll.Logf("[%2s]: %-15s FAIL %s: %s (requeue: %v)", name, order, since.String(), err, requeue)
+			if requeue {
+				delayR := rand.Int() % 10
+				d :=  time.Second*1 + time.Second * time.Duration(delayR) 
+				tpoll.Debugf("Sleeping %v before NACK/requeue", d)
+				time.Sleep(d)
+			}
 			err2 := order.delivery.Nack(false, requeue)
 			if err2 != nil {
 				tpoll.Logf("NAck failed: %s", err2)

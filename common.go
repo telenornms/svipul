@@ -25,6 +25,7 @@ package tpoll
 
 import (
 	"github.com/gosnmp/gosnmp"
+	"github.com/sleepinggenius2/gosmi/models"
 )
 
 // Node is a rendered SMI node, e.g.: the result of a lookup. Usually
@@ -35,6 +36,8 @@ type Node struct {
 	Name      string
 	Numeric   string // I KNOW
 	Qualified string
+	Format    string
+	Type      *models.Type
 	Lookedup  bool // True if key was not a pure OID
 }
 
@@ -43,5 +46,5 @@ type Node struct {
 // and session.Session type implements it. Since it's tied to both a Node
 // and a gosnmp.SnmpPDU type, it's rather strongly connected to SNMP atm.
 type Walker interface {
-	BulkWalk(node []Node, cb func(pdu gosnmp.SnmpPDU) error) error
+	BulkWalk(node []Node, cb func(pdu gosnmp.SnmpPDU, node Node) error) error
 }

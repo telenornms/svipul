@@ -28,15 +28,14 @@ import (
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/svipul"
 	"github.com/telenornms/svipul/smierte"
-	"strconv"
 	"time"
 )
 
 // OMap is a two-way map of index to name, the typical case is ifIndex to
 // ifName, but can be anything.
 type OMap struct {
-	IdxToName map[int]string
-	NameToIdx map[string]int
+	IdxToName map[string]string
+	NameToIdx map[string]string
 	Oid       tpoll.Node // OID used to build the map, e.g.: ifName
 	Timestamp time.Time
 }
@@ -44,8 +43,8 @@ type OMap struct {
 func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	m := &OMap{}
 	var err error
-	m.IdxToName = make(map[int]string)
-	m.NameToIdx = make(map[string]int)
+	m.IdxToName = make(map[string]string)
+	m.NameToIdx = make(map[string]string)
 	m.Timestamp = time.Now()
 	m.Oid, err = mib.Lookup(oid)
 	if err != nil {
@@ -62,15 +61,14 @@ func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
 	return m, err
 }
 
-func (m *OMap) walkCB(pdu gosnmp.SnmpPDU) error {
+func (m *OMap) walkCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
 	idx := pdu.Name[len(m.Oid.Numeric)+2:]
-	ifN := string(pdu.Value.([]byte))
-	idxN64, err := strconv.ParseInt(idx, 10, 32)
-	if err != nil {
-		return err
+	var ifN string
+	ifN, ok := pdu.Value.(string)
+	if !ok {
+		ifN = string(pdu.Value.([]byte))
 	}
-	idxN := int(idxN64)
-	m.IdxToName[idxN] = ifN
-	m.NameToIdx[ifN] = idxN
+	m.IdxToName[idx] = ifN
+	m.NameToIdx[ifN] = idx
 	return nil
 }

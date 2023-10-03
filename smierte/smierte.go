@@ -34,6 +34,7 @@ possible because it's not unlikely that it'll be switched.
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/sleepinggenius2/gosmi"
@@ -64,14 +65,16 @@ func (c *Config) Init() error {
 		gosmi.AppendPath(path)
 	}
 	loaded := 0
+	var modules []string
 	for _, module := range c.Modules {
 		moduleName, err := gosmi.LoadModule(module)
 		if err != nil {
-			return fmt.Errorf("module load failed: %w", err)
+			return fmt.Errorf("module load for %s failed: %w", moduleName, err)
 		}
-		tpoll.Debugf("Loaded SMI module %s", moduleName)
+		modules = append(modules, moduleName)
 		loaded++
 	}
+	tpoll.Debugf("Loaded SMI modules: %s", strings.Join(modules, ", "))
 	tpoll.Logf("Loaded %d SMI modules", loaded)
 	return nil
 }
@@ -110,11 +113,14 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 		ret.Lookedup = true
 		n, err = gosmi.GetNode(item)
 	}
+	//	tpoll.Logf("n: %#v TYPE: %#v", n, n.Type.Enum)
 	if err != nil {
 		return ret, fmt.Errorf("gosmi.GetNode failed: %w", err)
 	}
 	ret.Numeric = n.RenderNumeric()
 	ret.Name = n.Render(types.RenderName)
+	ret.Format = n.Type.Format
+	ret.Type = n.Type
 	if match {
 		ret.Qualified = item[1:]
 	}
