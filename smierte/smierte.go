@@ -102,6 +102,7 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	match, _ := regexp.Match("^[0-9.]+$", []byte(item))
 	var err error
 	var n gosmi.SmiNode
+	endy := ""
 	if match {
 		oid, err := types.OidFromString(item)
 		if err != nil {
@@ -111,13 +112,18 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 		n, err = gosmi.GetNodeByOID(oid)
 	} else {
 		ret.Lookedup = true
-		n, err = gosmi.GetNode(item)
+		// This is to allow looking up sysName.0 - it's probably
+		// not very close to perfect.
+		splitty := strings.Split(item, ".")
+		n, err = gosmi.GetNode(splitty[0])
+		if len(splitty) > 1 {
+			endy = "." + strings.Join(splitty[1:], ".")
+		}
 	}
-	//	tpoll.Logf("n: %#v TYPE: %#v", n, n.Type.Enum)
 	if err != nil {
 		return ret, fmt.Errorf("gosmi.GetNode failed: %w", err)
 	}
-	ret.Numeric = n.RenderNumeric()
+	ret.Numeric = n.RenderNumeric() + endy
 	ret.Name = n.Render(types.RenderName)
 	ret.Format = n.Type.Format
 	ret.Type = n.Type

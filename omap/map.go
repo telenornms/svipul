@@ -37,7 +37,7 @@ type OMap struct {
 	IdxToName map[string]string
 	NameToIdx map[string]string
 	Oid       tpoll.Node // OID used to build the map, e.g.: ifName
-	Timestamp time.Time
+	Timestamp time.Time  // When was the map created?
 }
 
 func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
