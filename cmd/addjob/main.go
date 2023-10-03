@@ -13,7 +13,7 @@ import (
 
 var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")
 var delay = flag.Duration("delay", -time.Second, "delay between individual orders, negative value means only one execution")
-var expire = flag.Duration("ttl", 10*time.Second, "expiry time. Minimum: 1ms")
+var expire = flag.Duration("ttl", 30*time.Second, "expiry time. Minimum: 1ms")
 
 func main() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
