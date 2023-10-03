@@ -28,9 +28,9 @@ package main
 
 import (
 	"encoding/json"
-	"math/rand"
 	"flag"
 	"fmt"
+	"math/rand"
 	"regexp"
 	"strings"
 	"time"
@@ -40,7 +40,7 @@ import (
 	"github.com/telenornms/skogul"
 	sconfig "github.com/telenornms/skogul/config"
 	"github.com/telenornms/svipul"
-//	"github.com/sleepinggenius2/gosmi/models"
+	//	"github.com/sleepinggenius2/gosmi/models"
 	"github.com/sleepinggenius2/gosmi/types"
 	"github.com/telenornms/svipul/inventory"
 	"github.com/telenornms/svipul/omap"
@@ -297,28 +297,27 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 func (t *Task) bwCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
 	var v interface{}
 	foo := node.Type.FormatValue(pdu.Value)
-	tpoll.Logf("t: %#v", node.Type.Name)
-	if node.Type.BaseType ==  types.BaseTypeUnknown ||
+	if node.Type.BaseType == types.BaseTypeUnknown ||
 		node.Type.BaseType == types.BaseTypeObjectIdentifier ||
 		node.Type.BaseType == types.BaseTypeEnum ||
 		node.Type.BaseType == types.BaseTypeBits ||
 		node.Type.BaseType == types.BaseTypePointer {
 		v = foo.Formatted
-	} else if (node.Type.BaseType == types.BaseTypeOctetString) {
+	} else if node.Type.BaseType == types.BaseTypeOctetString {
 		if node.Type.Format == "" {
 			switch foo.Raw.(type) {
-				case string:
-					v = foo.Raw
-				case []uint8:
-					// This one is a bit iffy, since I
-					// don't know if there are
-					// problematic octet strings out
-					// there, but I _do_ know
-					// hrSWInstalledName will fail to
-					// render sensibly without it.
-					v = string(foo.Raw.([]uint8))
-				default:
-					v = foo.Formatted
+			case string:
+				v = foo.Raw
+			case []uint8:
+				// This one is a bit iffy, since I
+				// don't know if there are
+				// problematic octet strings out
+				// there, but I _do_ know
+				// hrSWInstalledName will fail to
+				// render sensibly without it.
+				v = string(foo.Raw.([]uint8))
+			default:
+				v = foo.Formatted
 			}
 		} else {
 			v = foo.Formatted
@@ -477,11 +476,11 @@ func (e *Engine) Listener(c chan Order, name string) {
 			requeue := true
 			if order.delivery.Redelivered {
 				requeue = false
-			} 
+			}
 			tpoll.Logf("[%2s]: %-15s FAIL %s: %s (requeue: %v)", name, order, since.String(), err, requeue)
 			if requeue {
 				delayR := rand.Int() % 10
-				d :=  time.Second*1 + time.Second * time.Duration(delayR) 
+				d := time.Second*1 + time.Second*time.Duration(delayR)
 				tpoll.Debugf("Sleeping %v before NACK/requeue", d)
 				time.Sleep(d)
 			}
