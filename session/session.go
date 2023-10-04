@@ -7,7 +7,6 @@ import (
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/svipul"
-	"github.com/telenornms/svipul/smierte"
 )
 
 type Session struct {
@@ -42,13 +41,12 @@ func (s *Session) Finalize() {
 
 // Get uses SNMP Get to fetch precise OIDs. it will split it into
 // multiple requests if there are more nodes than max-oids.a
-func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll.Node) error) error {
+func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
 	if len(nodes) < 1 {
 		return fmt.Errorf("refusing to carry out GET for 0 nodes")
 	}
 	oids := make([]string, 0, len(nodes))
 	originals := make([]string, 0, len(nodes))
-	mapback := make(map[string]tpoll.Node)
 	for _, a := range nodes {
 		on := a.Numeric
 		if a.Qualified != "" {
@@ -57,7 +55,6 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll
 		numeric := fmt.Sprintf(".%s", on)
 		oids = append(oids, numeric)
 		originals = append(originals, numeric)
-		mapback[numeric] = a
 	}
 	if len(oids) < 1 || oids[0] == "." || originals[0] == "." {
 		return fmt.Errorf("corrupt oid-lookup, probably a bug. oids[0] is blank: nodes: %#v", nodes)
@@ -68,7 +65,7 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll
 		if end > len(oids) {
 			end = len(oids)
 		}
-		err := s.get(oids[i:end], mapback, cb)
+		err := s.get(oids[i:end], cb)
 		if err != nil {
 			return fmt.Errorf("oid get failed: %w", err)
 		}
@@ -78,7 +75,7 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll
 	return nil
 }
 
-func (s *Session) get(oids []string, mapback map[string]tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll.Node) error) error {
+func (s *Session) get(oids []string, cb func(pdu gosnmp.SnmpPDU) error) error {
 	originals := oids
 	result, err := s.S.Get(oids)
 	if err != nil {
@@ -102,7 +99,7 @@ func (s *Session) get(oids []string, mapback map[string]tpoll.Node, cb func(pdu 
 			}
 		}
 		if found {
-			err = cb(pdu, mapback[pdu.Name])
+			err = cb(pdu)
 			if err != nil {
 				return fmt.Errorf("callback returned error: %w", err)
 			}
@@ -116,7 +113,7 @@ func (s *Session) get(oids []string, mapback map[string]tpoll.Node, cb func(pdu 
 
 // BulkWalk uses SNMP GetBulk to fetch one or more column/table, calling cb
 // for each pdu received.
-func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node tpoll.Node) error) error {
+func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
 	oids := make([]string, 0, len(nodes))
 	originals := make([]string, 0, len(nodes))
 	for _, a := range nodes {
@@ -155,11 +152,7 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node 
 			if !found {
 				misses++
 			} else {
-				node, err := smierte.Lookup(pdu.Name)
-				if err != nil {
-					tpoll.Logf("lookup of oid during walk failed: %v", err)
-				}
-				err = cb(pdu, node)
+				err = cb(pdu)
 				if err != nil {
 					return fmt.Errorf("callback returned error: %w", err)
 				}

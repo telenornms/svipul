@@ -286,8 +286,12 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 // intact. And then there's OctetString where we DO want to use DisplayHint
 // if present, but NOT if it isn't present, because the default is
 // atrocious.
-func (t *Task) bwCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
+func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	var v interface{}
+	node, err := smierte.Lookup(pdu.Name)
+	if err != nil {
+		tpoll.Logf("PDU/Node lookup failed during callback: %v", err)
+	}
 	if node.Type == nil {
 		return t.saveNode(pdu, pdu.Value)
 	}

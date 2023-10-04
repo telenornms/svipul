@@ -61,7 +61,7 @@ func BuildOMap(w tpoll.Walker, oid string) (*OMap, error) {
 	return m, err
 }
 
-func (m *OMap) walkCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
+func (m *OMap) walkCB(pdu gosnmp.SnmpPDU) error {
 	idx := pdu.Name[len(m.Oid.Numeric)+2:]
 	var ifN string
 	ifN, ok := pdu.Value.(string)
