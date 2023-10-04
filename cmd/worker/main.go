@@ -51,7 +51,6 @@ import (
 // Task is tied to a single SNMP run/walk and a single host
 type Task struct {
 	OMap   *omap.OMap      // Engine populates uniquely for each target
-	Mib    *smierte.Config // Engine populates, but same instance
 	Metric skogul.Metric   // New metric for each run.
 	Result ResolveM
 }
@@ -59,7 +58,6 @@ type Task struct {
 // Engine is semi-global state for SNMP, including a "cached" OMap ... map
 type Engine struct {
 	Skogul *sconfig.Config                  // output
-	Mib    *smierte.Config                  // MIB
 	OMap   map[string]map[string]*omap.OMap // Caches/stores looked up/built omaps
 }
 
@@ -74,14 +72,10 @@ func (e *Engine) Init(sc string) error {
 		return fmt.Errorf("missing tpoll handler in skogul config")
 	}
 	e.OMap = make(map[string]map[string]*omap.OMap)
-	mib := &smierte.Config{}
-	mib.Paths = tpoll.Config.MibPaths
-	mib.Modules = tpoll.Config.MibModules
-	err = mib.Init()
+	err = smierte.Init(tpoll.Config.MibModules, tpoll.Config.MibPaths)
 	if err != nil {
 		tpoll.Fatalf("failed to load mibs: %s", err)
 	}
-	e.Mib = mib
 	return nil
 }
 
@@ -96,7 +90,7 @@ func (e *Engine) GetOmap(target string, key string, sess *session.Session) (*oma
 			return e.OMap[target][key], nil
 		}
 	}
-	o, err := omap.BuildOMap(sess, e.Mib, key)
+	o, err := omap.BuildOMap(sess, key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build IF-map: %w", err)
 	}
@@ -181,11 +175,10 @@ func (e *Engine) Run(o Order) error {
 		}
 	}
 
-	t.Mib = e.Mib
 	lookedup := false
 	m := make([]tpoll.Node, 0, len(o.Oids))
 	for _, arg := range o.Oids {
-		nym, err := e.Mib.Lookup(arg)
+		nym, err := smierte.Lookup(arg)
 		if err != nil {
 			return fmt.Errorf("unable to look up oid: %w", err)
 		}
@@ -257,26 +250,25 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 	}
 	var name = pdu.Name
 	var element = ""
-	if t.Mib != nil {
-		n, err := t.Mib.Lookup(pdu.Name)
-		if err != nil {
-			tpoll.Logf("lookup failed: %s", err)
+	
+	n, err := smierte.Lookup(pdu.Name)
+	if err != nil {
+		tpoll.Logf("lookup failed: %s", err)
+	} else {
+		var trailer string
+		if len(n.Numeric) >= len(pdu.Name)-1 || (n.Qualified != "" && pdu.Name == n.Qualified[1:]) {
+			tpoll.Logf("trailer-issues: %s vs %v", n.Numeric, pdu)
+			trailer = "0"
 		} else {
-			var trailer string
-			if len(n.Numeric) >= len(pdu.Name)-1 || (n.Qualified != "" && pdu.Name == n.Qualified[1:]) {
-				tpoll.Logf("trailer-issues: %s vs %v", n.Numeric, pdu)
-				trailer = "0"
-			} else {
-				trailer = pdu.Name[len(n.Numeric)+1:][1:]
-				if len(trailer) > 0 {
-					if t.OMap != nil && t.OMap.IdxToName[trailer] != "" {
-						trailer = t.OMap.IdxToName[trailer]
-					}
+			trailer = pdu.Name[len(n.Numeric)+1:][1:]
+			if len(trailer) > 0 {
+				if t.OMap != nil && t.OMap.IdxToName[trailer] != "" {
+					trailer = t.OMap.IdxToName[trailer]
 				}
 			}
-			name = n.Name
-			element = trailer
 		}
+		name = n.Name
+		element = trailer
 	}
 
 	if t.Metric.Data[element] == nil {
@@ -296,6 +288,9 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 // atrocious.
 func (t *Task) bwCB(pdu gosnmp.SnmpPDU, node tpoll.Node) error {
 	var v interface{}
+	if node.Type == nil {
+		return t.saveNode(pdu, pdu.Value)
+	}
 	foo := node.Type.FormatValue(pdu.Value)
 	if node.Type.BaseType == types.BaseTypeUnknown ||
 		node.Type.BaseType == types.BaseTypeObjectIdentifier ||

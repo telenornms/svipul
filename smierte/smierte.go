@@ -42,14 +42,7 @@ import (
 	"github.com/telenornms/svipul"
 )
 
-// Config provides configuration basis for the smierte package, and
-// everything is dealt with on that basis, even if gosmi is
-// technically mostly working on a global scope.
-type Config struct {
-	Modules []string // SMI modules to load
-	Paths   []string // Paths to the modules
-	lock    sync.Mutex
-}
+var lock sync.Mutex
 
 // cache is an internal OID-cache for Nodes, to avoid expensive SMI-lookups
 // for what is most likely very repetitive lookups. So far, extremely
@@ -57,16 +50,16 @@ type Config struct {
 var cache sync.Map
 
 // Init loads MIB files from disk and a hard-coded list of modules
-func (c *Config) Init() error {
+func Init(inmodules []string, paths []string) error {
 	gosmi.Init()
 
-	for _, path := range c.Paths {
+	for _, path := range paths {
 		tpoll.Debugf("mib path added: %s", path)
 		gosmi.AppendPath(path)
 	}
 	loaded := 0
 	var modules []string
-	for _, module := range c.Modules {
+	for _, module := range inmodules {
 		moduleName, err := gosmi.LoadModule(module)
 		if err != nil {
 			return fmt.Errorf("module load for %s failed: %w", moduleName, err)
@@ -84,13 +77,13 @@ func (c *Config) Init() error {
 // safe enough, but there's a good chance we'll do multiple lookups in
 // parallel here. Could probably be simplified, need to benchmark how slow
 // types.OidFromString, GetNodeByOID and GetNode is...
-func (c *Config) Lookup(item string) (tpoll.Node, error) {
+func Lookup(item string) (tpoll.Node, error) {
 	if chit, ok := cache.Load(item); ok {
 		cast, _ := chit.(*tpoll.Node)
 		return *cast, nil
 	}
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	// Re-check in case other go-routine got it
 	if chit, ok := cache.Load(item); ok {
 		cast, _ := chit.(*tpoll.Node)
@@ -125,7 +118,9 @@ func (c *Config) Lookup(item string) (tpoll.Node, error) {
 	}
 	ret.Numeric = n.RenderNumeric() + endy
 	ret.Name = n.Render(types.RenderName)
-	ret.Format = n.Type.Format
+	if n.Type != nil {
+		ret.Format = n.Type.Format
+	}
 	ret.Type = n.Type
 	if match {
 		ret.Qualified = item[1:]

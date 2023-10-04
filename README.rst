@@ -10,7 +10,8 @@ It is currently able to:
 
 - Poll a network device based on orders from a RabbitMQ queue
 - Scale horizontally I suppose?
-- Do "entity maps" to map ifIndex to names, including ahead of time
+- Do "entity maps" to map names to indices in a table, e.g. map
+  ifName->index, cache the result and do requests based on that .
 - Report back using Skogul ( https://github.com/telenornms/skogul )
 
 The basic goal is to have a massively scalable solution that can be

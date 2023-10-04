@@ -40,18 +40,18 @@ type OMap struct {
 	Timestamp time.Time  // When was the map created?
 }
 
-func BuildOMap(w tpoll.Walker, mib *smierte.Config, oid string) (*OMap, error) {
+func BuildOMap(w tpoll.Walker, oid string) (*OMap, error) {
 	m := &OMap{}
 	var err error
 	m.IdxToName = make(map[string]string)
 	m.NameToIdx = make(map[string]string)
 	m.Timestamp = time.Now()
-	m.Oid, err = mib.Lookup(oid)
+	m.Oid, err = smierte.Lookup(oid)
 	if err != nil {
 		return nil, fmt.Errorf("lookup of oid %s failed: %w", oid, err)
 	}
 	if m.Oid.Numeric == "" {
-		return nil, fmt.Errorf("what happened with mib.Lookup? mib: %#v", mib)
+		return nil, fmt.Errorf("what happened with mib.Lookup? m.Oid: %#v", m.Oid)
 	}
 	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
 	since := time.Since(m.Timestamp).Round(time.Millisecond * 100)

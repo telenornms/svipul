@@ -1,0 +1,6 @@
+{
+	"target": "vm-lol1",
+	"id": "somethingRandomForEachRequest",
+	"mode": "Get",
+	"oids": [ "entPhysicalName" ]
+}

@@ -1,0 +1,6 @@
+{
+	"target": "ex-lol5",
+	"mode": "GetElements",
+	"oids": ["ifHighSpeed", "ifName", "ifAlias", "ifHCInOctets"], 
+	"elements": ["(xe)-[0-9/]*$","ge-0/0/47$"]
+}

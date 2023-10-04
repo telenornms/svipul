@@ -1,0 +1,7 @@
+{
+	"target": "vm-lol2",
+	"mode": "GetElements",
+	"oids": [ "ipAdEntNetMask", "ipAdEntBcastAddr" ],
+	"key": "ipAdEntAddr",
+	"elements": [".*"]
+}

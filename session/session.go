@@ -7,6 +7,7 @@ import (
 
 	"github.com/gosnmp/gosnmp"
 	"github.com/telenornms/svipul"
+	"github.com/telenornms/svipul/smierte"
 )
 
 type Session struct {
@@ -154,7 +155,11 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU, node 
 			if !found {
 				misses++
 			} else {
-				err = cb(pdu, tpoll.Node{})
+				node, err := smierte.Lookup(pdu.Name)
+				if err != nil {
+					tpoll.Logf("lookup of oid during walk failed: %v", err)
+				}
+				err = cb(pdu, node)
 				if err != nil {
 					return fmt.Errorf("callback returned error: %w", err)
 				}

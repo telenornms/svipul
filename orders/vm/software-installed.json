@@ -1,0 +1,8 @@
+{
+	"target": "vm-lol2",
+	"mode": "GetElements",
+	"ooids": [ "hrSWInstalledIndex", "hrSWInstalledName", "hrSWInstalledID","hrSWInstalledType", "hrSWInstalledDate" ],
+	"oids": [ "hrSWInstalledName", "hrSWInstalledDate" ],
+	"key": "hrSWInstalledName",
+	"elements": [".*chrom.*"]
+}

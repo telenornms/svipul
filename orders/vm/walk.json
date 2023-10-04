@@ -1,0 +1,5 @@
+{
+	"target": "vm-lol1",
+	"mode": "Walk",
+	"oids": ["ifTable", "ifXTable"]
+}
