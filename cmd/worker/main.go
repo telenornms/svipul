@@ -1,5 +1,5 @@
 /*
- * tpoll test program
+ * svipul test program
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -68,13 +68,13 @@ func (e *Engine) Init(sc string) error {
 	if err != nil {
 		return fmt.Errorf("skogul-config failed loading: %w", err)
 	}
-	if e.Skogul.Handlers["tpoll"] == nil {
-		return fmt.Errorf("missing tpoll handler in skogul config")
+	if e.Skogul.Handlers["svipul"] == nil {
+		return fmt.Errorf("missing svipul handler in skogul config")
 	}
 	e.OMap = make(map[string]map[string]*omap.OMap)
-	err = smierte.Init(tpoll.Config.MibModules, tpoll.Config.MibPaths)
+	err = smierte.Init(svipul.Config.MibModules, svipul.Config.MibPaths)
 	if err != nil {
-		tpoll.Fatalf("failed to load mibs: %s", err)
+		svipul.Fatalf("failed to load mibs: %s", err)
 	}
 	return nil
 }
@@ -83,8 +83,8 @@ func (e *Engine) Init(sc string) error {
 func (e *Engine) GetOmap(target string, key string, sess *session.Session) (*omap.OMap, error) {
 	var err error
 	if e.OMap[target][key] != nil {
-		if time.Since(e.OMap[target][key].Timestamp) > tpoll.Config.MaxMapAge {
-			tpoll.Logf("Deleting aged out omap for %s", target)
+		if time.Since(e.OMap[target][key].Timestamp) > svipul.Config.MaxMapAge {
+			svipul.Logf("Deleting aged out omap for %s", target)
 			e.OMap[target][key] = nil
 		} else {
 			return e.OMap[target][key], nil
@@ -105,16 +105,16 @@ func (e *Engine) GetOmap(target string, key string, sess *session.Session) (*oma
 // the key is blank, ALL maps for that target is cleared.
 func (e *Engine) ClearOmap(target string, key string) error {
 	if key == "" {
-		tpoll.Logf("Deleting all maps for %s on request", target)
+		svipul.Logf("Deleting all maps for %s on request", target)
 		delete(e.OMap, target)
 		return nil
 	}
 	if e.OMap[target] != nil {
-		tpoll.Logf("Deleting `%s'-map for %s on request", key, target)
+		svipul.Logf("Deleting `%s'-map for %s on request", key, target)
 		delete(e.OMap[target], key)
 		return nil
 	}
-	tpoll.Logf("Map `%s' for %s not found while trying to clear chache. Nothing to do. Wohoo!", key, target)
+	svipul.Logf("Map `%s' for %s not found while trying to clear chache. Nothing to do. Wohoo!", key, target)
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (e *Engine) Run(o Order) error {
 	}
 	if o.Elements != nil && len(o.Elements) > 0 {
 		if o.Key == "" {
-			tpoll.Debugf("elements provided, but not key. Assuming ifName")
+			svipul.Debugf("elements provided, but not key. Assuming ifName")
 			o.Key = "ifName"
 		}
 	}
@@ -148,11 +148,11 @@ func (e *Engine) Run(o Order) error {
 		return fmt.Errorf("session creation failed: %w", err)
 	}
 	defer sess.Finalize()
-	tpoll.Debugf("%s - starting run", o.Target)
+	svipul.Debugf("%s - starting run", o.Target)
 
 	if o.Mode == BuildMap {
 		if o.Key == "" {
-			tpoll.Debugf("Requested building of a map, but no key provided. Assuming ifName")
+			svipul.Debugf("Requested building of a map, but no key provided. Assuming ifName")
 			o.Key = "ifName"
 		}
 
@@ -176,7 +176,7 @@ func (e *Engine) Run(o Order) error {
 	}
 
 	lookedup := false
-	m := make([]tpoll.Node, 0, len(o.Oids))
+	m := make([]svipul.Node, 0, len(o.Oids))
 	for _, arg := range o.Oids {
 		nym, err := smierte.Lookup(arg)
 		if err != nil {
@@ -206,7 +206,7 @@ func (e *Engine) Run(o Order) error {
 	}
 	t.Metric.Data = make(map[string]interface{})
 	if o.Mode == GetElements {
-		nym := make([]tpoll.Node, 0, len(m)*len(o.Elements))
+		nym := make([]svipul.Node, 0, len(m)*len(o.Elements))
 		for _, oid := range m {
 			for _, e := range o.Elements {
 				for idx, einner := range t.OMap.NameToIdx {
@@ -235,7 +235,7 @@ func (e *Engine) Run(o Order) error {
 	c := skogul.Container{}
 	c.Metrics = append(c.Metrics, &t.Metric)
 
-	err = e.Skogul.Handlers["tpoll"].Handler.TransformAndSend(&c)
+	err = e.Skogul.Handlers["svipul"].Handler.TransformAndSend(&c)
 	if err != nil {
 		return fmt.Errorf("send failed: %w", err)
 	}
@@ -253,11 +253,11 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 	
 	n, err := smierte.Lookup(pdu.Name)
 	if err != nil {
-		tpoll.Logf("lookup failed: %s", err)
+		svipul.Logf("lookup failed: %s", err)
 	} else {
 		var trailer string
 		if len(n.Numeric) >= len(pdu.Name)-1 || (n.Qualified != "" && pdu.Name == n.Qualified[1:]) {
-			tpoll.Logf("trailer-issues: %s vs %v", n.Numeric, pdu)
+			svipul.Logf("trailer-issues: %s vs %v", n.Numeric, pdu)
 			trailer = "0"
 		} else {
 			trailer = pdu.Name[len(n.Numeric)+1:][1:]
@@ -290,7 +290,7 @@ func (t *Task) bwCB(pdu gosnmp.SnmpPDU) error {
 	var v interface{}
 	node, err := smierte.Lookup(pdu.Name)
 	if err != nil {
-		tpoll.Logf("PDU/Node lookup failed during callback: %v", err)
+		svipul.Logf("PDU/Node lookup failed during callback: %v", err)
 	}
 	if node.Type == nil {
 		return t.saveNode(pdu, pdu.Value)
@@ -466,7 +466,7 @@ func (m Mode) MarshalJSON() ([]byte, error) {
 }
 
 func (e *Engine) Listener(c chan Order, name string) {
-	tpoll.Debugf("Starting listener %s...", name)
+	svipul.Debugf("Starting listener %s...", name)
 	for order := range c {
 		now := time.Now()
 		err := e.Run(order)
@@ -476,63 +476,63 @@ func (e *Engine) Listener(c chan Order, name string) {
 			if order.delivery.Redelivered {
 				requeue = false
 			}
-			tpoll.Logf("[%2s]: %-15s FAIL %s: %s (requeue: %v)", name, order, since.String(), err, requeue)
+			svipul.Logf("[%2s]: %-15s FAIL %s: %s (requeue: %v)", name, order, since.String(), err, requeue)
 			if requeue {
 				delayR := rand.Int() % 10
 				d := time.Second*1 + time.Second*time.Duration(delayR)
-				tpoll.Debugf("Sleeping %v before NACK/requeue", d)
+				svipul.Debugf("Sleeping %v before NACK/requeue", d)
 				time.Sleep(d)
 			}
 			err2 := order.delivery.Nack(false, requeue)
 			if err2 != nil {
-				tpoll.Logf("NAck failed: %s", err2)
+				svipul.Logf("NAck failed: %s", err2)
 			}
 
 		} else {
-			tpoll.Logf("[%2s]: %-15s OK %s", name, order, since.String())
+			svipul.Logf("[%2s]: %-15s OK %s", name, order, since.String())
 			err2 := order.delivery.Ack(false)
 			if err2 != nil {
-				tpoll.Logf("Ack failed: %s", err2)
+				svipul.Logf("Ack failed: %s", err2)
 			}
 		}
 	}
 }
 
 func main() {
-	flag.BoolVar(&tpoll.Config.Debug, "debug", true, "enable debug")
-	flag.IntVar(&tpoll.Config.Workers, "workers", 10, "number of workers to run in parallell")
+	flag.BoolVar(&svipul.Config.Debug, "debug", true, "enable debug")
+	flag.IntVar(&svipul.Config.Workers, "workers", 10, "number of workers to run in parallell")
 	flag.Parse()
-	tpoll.Init()
+	svipul.Init()
 	e := Engine{}
 	err := e.Init("skogul")
 	if err != nil {
-		tpoll.Fatalf("Couldn't initialize engine: %s", err)
+		svipul.Fatalf("Couldn't initialize engine: %s", err)
 	}
 	c := make(chan Order, 0)
-	for i := 0; i < tpoll.Config.Workers; i++ {
+	for i := 0; i < svipul.Config.Workers; i++ {
 		go e.Listener(c, fmt.Sprintf("%d", i))
 		time.Sleep(time.Microsecond * 20)
 	}
-	tpoll.Logf("Started %d workers", tpoll.Config.Workers)
+	svipul.Logf("Started %d workers", svipul.Config.Workers)
 
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
-		tpoll.Fatalf("can't connect to broker: %s", err)
+		svipul.Fatalf("can't connect to broker: %s", err)
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		tpoll.Fatalf("can't get channel: %s", err)
+		svipul.Fatalf("can't get channel: %s", err)
 	}
 	defer ch.Close()
-	err = ch.Qos(tpoll.Config.Workers+1, 0, true)
+	err = ch.Qos(svipul.Config.Workers+1, 0, true)
 	if err != nil {
-		tpoll.Fatalf("can't set qos: %s", err)
+		svipul.Fatalf("can't set qos: %s", err)
 	}
 
 	q, err := ch.QueueDeclare(
-		"tpoll", // name
+		"svipul", // name
 		false,   // durable
 		false,   // delete when unused
 		false,   // exclusive
@@ -540,7 +540,7 @@ func main() {
 		nil,     // arguments
 	)
 	if err != nil {
-		tpoll.Fatalf("can't declare queue: %s", err)
+		svipul.Fatalf("can't declare queue: %s", err)
 	}
 
 	msgs, err := ch.Consume(
@@ -553,19 +553,19 @@ func main() {
 		nil,    // args
 	)
 	if err != nil {
-		tpoll.Fatalf("can't register consumer: %s", err)
+		svipul.Fatalf("can't register consumer: %s", err)
 	}
-	tpoll.Logf("Listening for orders")
+	svipul.Logf("Listening for orders")
 	for d := range msgs {
 		order := Order{}
 		err = json.Unmarshal(d.Body, &order)
 		if err != nil {
-			tpoll.Logf("order json unmarshal: %s", err)
+			svipul.Logf("order json unmarshal: %s", err)
 			d.Reject(false)
 			continue
 		}
 		order.delivery = d
 		c <- order
 	}
-	tpoll.Logf("Reached the end. Connection probably dead. Some day, we'll handle this, but not today.")
+	svipul.Logf("Reached the end. Connection probably dead. Some day, we'll handle this, but not today.")
 }

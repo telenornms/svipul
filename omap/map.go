@@ -1,5 +1,5 @@
 /*
- * tpoll map
+ * svipul map
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -36,11 +36,11 @@ import (
 type OMap struct {
 	IdxToName map[string]string
 	NameToIdx map[string]string
-	Oid       tpoll.Node // OID used to build the map, e.g.: ifName
+	Oid       svipul.Node // OID used to build the map, e.g.: ifName
 	Timestamp time.Time  // When was the map created?
 }
 
-func BuildOMap(w tpoll.Walker, oid string) (*OMap, error) {
+func BuildOMap(w svipul.Walker, oid string) (*OMap, error) {
 	m := &OMap{}
 	var err error
 	m.IdxToName = make(map[string]string)
@@ -53,10 +53,10 @@ func BuildOMap(w tpoll.Walker, oid string) (*OMap, error) {
 	if m.Oid.Numeric == "" {
 		return nil, fmt.Errorf("what happened with mib.Lookup? m.Oid: %#v", m.Oid)
 	}
-	err = w.BulkWalk([]tpoll.Node{m.Oid}, m.walkCB)
+	err = w.BulkWalk([]svipul.Node{m.Oid}, m.walkCB)
 	since := time.Since(m.Timestamp).Round(time.Millisecond * 100)
 	if err == nil {
-		tpoll.Debugf("omap built with %d elements in %s", len(m.IdxToName), since.String())
+		svipul.Debugf("omap built with %d elements in %s", len(m.IdxToName), since.String())
 	}
 	return m, err
 }

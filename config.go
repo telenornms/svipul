@@ -1,5 +1,5 @@
 /*
- * tpoll config
+ * svpul config
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -21,7 +21,7 @@
  * 02110-1301  USA
  */
 
-package tpoll
+package svipul
 
 import (
 	"time"

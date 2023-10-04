@@ -41,7 +41,7 @@ func (s *Session) Finalize() {
 
 // Get uses SNMP Get to fetch precise OIDs. it will split it into
 // multiple requests if there are more nodes than max-oids.a
-func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
+func (s *Session) Get(nodes []svipul.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
 	if len(nodes) < 1 {
 		return fmt.Errorf("refusing to carry out GET for 0 nodes")
 	}
@@ -71,7 +71,7 @@ func (s *Session) Get(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) err
 		}
 		runs++
 	}
-	tpoll.Debugf("run for %d oids finished in %d iterations", len(oids), runs)
+	svipul.Debugf("run for %d oids finished in %d iterations", len(oids), runs)
 	return nil
 }
 
@@ -88,7 +88,7 @@ func (s *Session) get(oids []string, cb func(pdu gosnmp.SnmpPDU) error) error {
 		if pdu.Type == gosnmp.EndOfMibView {
 			return fmt.Errorf("issues with pdu (oids: %v), type: %v, pdu: %v", oids, pdu.Type, pdu)
 		} else if pdu.Type == gosnmp.NoSuchObject || pdu.Type == gosnmp.NoSuchInstance {
-			tpoll.Debugf("got no such object/no such instance when looking for oid. Ignoring. pdu: %v", pdu)
+			svipul.Debugf("got no such object/no such instance when looking for oid. Ignoring. pdu: %v", pdu)
 			continue
 		}
 		found := false
@@ -104,7 +104,7 @@ func (s *Session) get(oids []string, cb func(pdu gosnmp.SnmpPDU) error) error {
 				return fmt.Errorf("callback returned error: %w", err)
 			}
 		} else {
-			tpoll.Logf("Invalid pdu returned? WAT: %s", pdu.Name)
+			svipul.Logf("Invalid pdu returned? WAT: %s", pdu.Name)
 		}
 
 	}
@@ -113,7 +113,7 @@ func (s *Session) get(oids []string, cb func(pdu gosnmp.SnmpPDU) error) error {
 
 // BulkWalk uses SNMP GetBulk to fetch one or more column/table, calling cb
 // for each pdu received.
-func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
+func (s *Session) BulkWalk(nodes []svipul.Node, cb func(pdu gosnmp.SnmpPDU) error) error {
 	oids := make([]string, 0, len(nodes))
 	originals := make([]string, 0, len(nodes))
 	for _, a := range nodes {
@@ -163,7 +163,7 @@ func (s *Session) BulkWalk(nodes []tpoll.Node, cb func(pdu gosnmp.SnmpPDU) error
 			oids = append(oids, r)
 		}
 	}
-	tpoll.Debugf("BulkWalk for %d oids done in %d iterations with %d misses and %d hits", len(nodes), iterations, misses, hits)
+	svipul.Debugf("BulkWalk for %d oids done in %d iterations with %d misses and %d hits", len(nodes), iterations, misses, hits)
 	return nil
 }
 

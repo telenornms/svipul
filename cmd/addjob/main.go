@@ -18,19 +18,19 @@ var expire = flag.Duration("ttl", 30*time.Second, "expiry time. Minimum: 1ms")
 func main() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
-		tpoll.Fatalf("failed to connect to rabbitMQ: %s", err)
+		svipul.Fatalf("failed to connect to rabbitMQ: %s", err)
 	}
 
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		tpoll.Fatalf("failed to connect to open a channel: %s", err)
+		svipul.Fatalf("failed to connect to open a channel: %s", err)
 	}
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"tpoll", // name
+		"svipul", // name
 		false,   // durable
 		false,   // delete when unused
 		false,   // exclusive
@@ -38,28 +38,28 @@ func main() {
 		nil,     // arguments
 	)
 	if err != nil {
-		tpoll.Fatalf("failed to declare a queue: %s", err)
+		svipul.Fatalf("failed to declare a queue: %s", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	flag.Parse()
 	if expire.Milliseconds() < 1 {
-		tpoll.Fatalf("TTL must be at least 1ms")
+		svipul.Fatalf("TTL must be at least 1ms")
 	}
 	var bs [][]byte
 	args := flag.Args()
 	if len(os.Args) < 1 {
-		tpoll.Fatalf("no order-file supplied")
+		svipul.Fatalf("no order-file supplied")
 	}
 	for _, fil := range args {
 		b, err := os.ReadFile(fil)
 		if err != nil {
-			tpoll.Fatalf("failed to read %s", fil)
+			svipul.Fatalf("failed to read %s", fil)
 		}
 		bs = append(bs, b)
 	}
 	ttl := fmt.Sprintf("%d", expire.Milliseconds())
-	tpoll.Debugf("expire: %s", ttl)
+	svipul.Debugf("expire: %s", ttl)
 	for {
 		for idx, b := range bs {
 			err = ch.PublishWithContext(ctx,
@@ -73,19 +73,19 @@ func main() {
 					Body:        []byte(b),
 				})
 			if err != nil {
-				tpoll.Fatalf("failed to publish a message: %s", err)
+				svipul.Fatalf("failed to publish a message: %s", err)
 			}
-			tpoll.Logf("Sent %d bytes", len(b))
+			svipul.Logf("Sent %d bytes", len(b))
 			if *delay > 0 && idx < len(bs)-1 {
-				tpoll.Logf("Sleeping before next order: %s", delay)
+				svipul.Logf("Sleeping before next order: %s", delay)
 				time.Sleep(*delay)
 			}
 		}
 		if *sleeptime < 0 {
-			tpoll.Logf("negative sleeptime, exiting after 1 publish")
+			svipul.Logf("negative sleeptime, exiting after 1 publish")
 			os.Exit(0)
 		}
-		tpoll.Logf("Sleeping %s", sleeptime)
+		svipul.Logf("Sleeping %s", sleeptime)
 		time.Sleep(*sleeptime)
 	}
 }

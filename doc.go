@@ -1,5 +1,5 @@
 /*
- * tpoll documentation-dummy
+ * svipul documentation-dummy
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -22,7 +22,7 @@
  */
 
 /*
-Package tpoll is an advanced library and toolset for polling large amounts
+Package svipul is an advanced library and toolset for polling large amounts
 of network devices, initially with SNMP, but conceptually with any relevant
 protocol.
 
@@ -30,4 +30,4 @@ It works, or will work, through a central work-distribution database/api,
 and multiple, largely independent pollers. The results are reported using
 Skogul.
 */
-package tpoll
+package svipul

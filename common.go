@@ -1,7 +1,7 @@
 /*
- * tpoll log-wrappers
+ * svipul common data definitions
  *
- * Copyright (c) 2022 Telenor Norge AS
+ * Copyright (c) 2023 Telenor Norge AS
  * Author(s):
  *  - Kristian Lyngstøl <kly@kly.no>
  *
@@ -21,7 +21,7 @@
  * 02110-1301  USA
  */
 
-package tpoll
+package svipul
 
 import (
 	"github.com/gosnmp/gosnmp"

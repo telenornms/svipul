@@ -1,5 +1,5 @@
 /*
- * tpoll smi-pain
+ * svipul smi-pain
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -54,7 +54,7 @@ func Init(inmodules []string, paths []string) error {
 	gosmi.Init()
 
 	for _, path := range paths {
-		tpoll.Debugf("mib path added: %s", path)
+		svipul.Debugf("mib path added: %s", path)
 		gosmi.AppendPath(path)
 	}
 	loaded := 0
@@ -67,8 +67,8 @@ func Init(inmodules []string, paths []string) error {
 		modules = append(modules, moduleName)
 		loaded++
 	}
-	tpoll.Debugf("Loaded SMI modules: %s", strings.Join(modules, ", "))
-	tpoll.Logf("Loaded %d SMI modules", loaded)
+	svipul.Debugf("Loaded SMI modules: %s", strings.Join(modules, ", "))
+	svipul.Logf("Loaded %d SMI modules", loaded)
 	return nil
 }
 
@@ -77,19 +77,19 @@ func Init(inmodules []string, paths []string) error {
 // safe enough, but there's a good chance we'll do multiple lookups in
 // parallel here. Could probably be simplified, need to benchmark how slow
 // types.OidFromString, GetNodeByOID and GetNode is...
-func Lookup(item string) (tpoll.Node, error) {
+func Lookup(item string) (svipul.Node, error) {
 	if chit, ok := cache.Load(item); ok {
-		cast, _ := chit.(*tpoll.Node)
+		cast, _ := chit.(*svipul.Node)
 		return *cast, nil
 	}
 	lock.Lock()
 	defer lock.Unlock()
 	// Re-check in case other go-routine got it
 	if chit, ok := cache.Load(item); ok {
-		cast, _ := chit.(*tpoll.Node)
+		cast, _ := chit.(*svipul.Node)
 		return *cast, nil
 	}
-	var ret tpoll.Node
+	var ret svipul.Node
 	defer cache.Store(item, &ret)
 	ret.Key = item
 	match, _ := regexp.Match("^[0-9.]+$", []byte(item))

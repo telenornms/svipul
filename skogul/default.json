@@ -1,6 +1,6 @@
 {
 	"handlers": {
-		"tpoll": {
+		"svipul": {
 			"sender": "print",
 			"transformers": ["now"],
 			"parser": "skogul"

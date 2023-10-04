@@ -1,5 +1,5 @@
 /*
- * tpoll inventory
+ * svipul inventory
  *
  * Copyright (c) 2022 Telenor Norge AS
  * Author(s):
@@ -51,7 +51,7 @@ func LockHost(t string) (Host, error) {
 		return h, fmt.Errorf("target still locked, refusing to start more runs")
 	}
 	h.Address = t
-	h.Community = tpoll.Config.DefaultCommunity
+	h.Community = svipul.Config.DefaultCommunity
 	return h, nil
 }
 
