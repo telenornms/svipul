@@ -116,14 +116,19 @@ func Lookup(item string) (svipul.Node, error) {
 	if err != nil {
 		return ret, fmt.Errorf("gosmi.GetNode failed: %w", err)
 	}
-	ret.Numeric = n.RenderNumeric() + endy
+	ret.Numeric = n.RenderNumeric()
+	ret.Qualified = ret.Numeric + endy
 	ret.Name = n.Render(types.RenderName)
 	if n.Type != nil {
 		ret.Format = n.Type.Format
 	}
 	ret.Type = n.Type
 	if match {
-		ret.Qualified = item[1:]
+		index := 0
+		if item[0] == '.' {
+			index++
+		}
+		ret.Qualified = item[index:]
 	}
 	return ret, nil
 }

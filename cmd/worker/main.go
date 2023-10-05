@@ -214,7 +214,7 @@ func (e *Engine) Run(o Order) error {
 					if match {
 						eid := einner
 						nynode := oid
-						nynode.Numeric = nynode.Numeric + fmt.Sprintf(".%s", eid)
+						nynode.Qualified = nynode.Qualified + fmt.Sprintf(".%s", eid)
 						nym = append(nym, nynode)
 					}
 

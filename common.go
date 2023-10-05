@@ -33,10 +33,10 @@ import (
 // avoid circular dependencies
 type Node struct {
 	Key       string // original input key, kept for posterity
-	Name      string
-	Numeric   string // I KNOW
-	Qualified string
-	Format    string
+	Name      string // sysName
+	Numeric   string // .1.3.6.1.2.1.1.1 // root
+	Qualified string // .1.3.6.1.2.1.1.1.0 // "full", with index
+	Format    string // 255a <-- possibly obsolete
 	Type      *models.Type
 	Lookedup  bool // True if key was not a pure OID
 }
