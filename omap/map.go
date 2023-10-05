@@ -37,7 +37,7 @@ type OMap struct {
 	IdxToName map[string]string
 	NameToIdx map[string]string
 	Oid       svipul.Node // OID used to build the map, e.g.: ifName
-	Timestamp time.Time  // When was the map created?
+	Timestamp time.Time   // When was the map created?
 }
 
 func BuildOMap(w svipul.Walker, oid string) (*OMap, error) {

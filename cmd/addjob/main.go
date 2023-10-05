@@ -31,11 +31,11 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		"svipul", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+		false,    // durable
+		false,    // delete when unused
+		false,    // exclusive
+		false,    // no-wait
+		nil,      // arguments
 	)
 	if err != nil {
 		svipul.Fatalf("failed to declare a queue: %s", err)

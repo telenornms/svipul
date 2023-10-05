@@ -21,7 +21,7 @@
  * 02110-1301  USA
  */
 
-package svipul 
+package svipul
 
 /*
 log.go is largely a wrapper around log for now, mainly so I can start doing

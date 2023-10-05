@@ -50,8 +50,8 @@ import (
 
 // Task is tied to a single SNMP run/walk and a single host
 type Task struct {
-	OMap   *omap.OMap      // Engine populates uniquely for each target
-	Metric skogul.Metric   // New metric for each run.
+	OMap   *omap.OMap    // Engine populates uniquely for each target
+	Metric skogul.Metric // New metric for each run.
 	Result ResolveM
 }
 
@@ -250,7 +250,7 @@ func (t *Task) saveNode(pdu gosnmp.SnmpPDU, v interface{}) error {
 	}
 	var name = pdu.Name
 	var element = ""
-	
+
 	n, err := smierte.Lookup(pdu.Name)
 	if err != nil {
 		svipul.Logf("lookup failed: %s", err)
@@ -533,11 +533,11 @@ func main() {
 
 	q, err := ch.QueueDeclare(
 		"svipul", // name
-		false,   // durable
-		false,   // delete when unused
-		false,   // exclusive
-		false,   // no-wait
-		nil,     // arguments
+		false,    // durable
+		false,    // delete when unused
+		false,    // exclusive
+		false,    // no-wait
+		nil,      // arguments
 	)
 	if err != nil {
 		svipul.Fatalf("can't declare queue: %s", err)
