@@ -499,7 +499,7 @@ func (e *Engine) Listener(c chan Order, name string) {
 }
 
 func main() {
-	flag.BoolVar(&svipul.Config.Debug, "debug", true, "enable debug")
+	flag.BoolVar(&svipul.Config.Debug, "debug", false, "enable debug")
 	flag.IntVar(&svipul.Config.Workers, "workers", 10, "number of workers to run in parallell")
 	flag.Parse()
 	svipul.Init()

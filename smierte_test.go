@@ -34,6 +34,10 @@ func TestLoading(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to load smi modules: %v", err)
 	}
+	
+	sysName := "1.3.6.1.2.1.1.5"
+	sysName543 := "1.3.6.1.2.1.1.5.543"
+	sysName123 := "1.3.6.1.2.1.1.5.123"
 
 	node, err := smierte.Lookup("sysName")
 	if err != nil {
@@ -46,9 +50,6 @@ func TestLoading(t *testing.T) {
 		t.Errorf("expected node numeric to be `1.3.6.1.2.1.1.5', got: %s", node.Numeric)
 	}
 
-	sysName := "1.3.6.1.2.1.1.5"
-	sysName543 := "1.3.6.1.2.1.1.5.543"
-	sysName123 := "1.3.6.1.2.1.1.5.123"
 	node, err = smierte.Lookup("sysName.123")
 	if err != nil {
 		t.Errorf("failed to lookup sysName.123: %v", err)
@@ -75,5 +76,26 @@ func TestLoading(t *testing.T) {
 	}
 	if node.Qualified != sysName543 {
 		t.Errorf("expected node qualified to be `%s', got: %s", sysName543, node.Qualified)
+	}
+
+	// redo with cache
+	node, err = smierte.Lookup(sysName543)
+	if err != nil {
+		t.Errorf("failed to lookup %s: %v", sysName543, err)
+	}
+	if node.Type == nil {
+		t.Errorf("%s types is nil", sysName543)
+	}
+	if node.Numeric != sysName {
+		t.Errorf("expected node numeric to be `%s', got: %s", sysName, node.Numeric)
+	}
+	if node.Qualified != sysName543 {
+		t.Errorf("expected node qualified to be `%s', got: %s", sysName543, node.Qualified)
+	}
+
+	// test failure
+	node, err = smierte.Lookup("blatsysName543")
+	if err == nil {
+		t.Errorf("expected an error looking up bogus OID, but it worked? Node returned: %v", node)
 	}
 }

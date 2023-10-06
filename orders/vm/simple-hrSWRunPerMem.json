@@ -1,0 +1,7 @@
+{
+	"target": "vm-lol1",
+	"id": "somethingRandomForEachRequest",
+	"mode": "Get",
+	"oids": [ "hrSWRunPerfMem.270" ],
+	"result": "Resolve"
+}

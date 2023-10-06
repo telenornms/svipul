@@ -1,8 +1,8 @@
 {
 	"target": "vm-lol2",
 	"mode": "GetElements",
-	"ooids": [ "hrSWInstalledIndex", "hrSWInstalledName", "hrSWInstalledID","hrSWInstalledType", "hrSWInstalledDate" ],
-	"oids": [ "hrSWInstalledName", "hrSWInstalledDate" ],
+	"oids": [ "hrSWInstalledIndex", "hrSWInstalledName", "hrSWInstalledID","hrSWInstalledType", "hrSWInstalledDate" ],
+	"ooids": [ "hrSWInstalledName", "hrSWInstalledDate" ],
 	"key": "hrSWInstalledName",
 	"elements": [".*chrom.*"]
 }

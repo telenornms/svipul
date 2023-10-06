@@ -38,9 +38,9 @@ type conf struct {
 
 var Config conf = conf{
 	DefaultCommunity: "public",
-	Debug:            true,
+	Debug:            false,
 	MibPaths:         []string{"mibs/modules"},
-	MaxMapAge:        time.Second * 60,
+	MaxMapAge:        time.Second * 3600,
 	MibModules: []string{
 		"ADSL-LINE-MIB",
 		"ADSL-TC-MIB",

@@ -1,5 +1,5 @@
 {
-	"target": "ex-lol1",
+	"target": "ex-lol5",
 	"mode": "Get",
 	"oids": [ ".1.3.6.1.2.1.1.5.0", ".1.3.6.1.2.1.1.1.0"],
 	"result": "resolve"
