@@ -13,6 +13,9 @@ addjob: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build addjobb !
 	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o addjob ./cmd/addjob
 
+clean:
+	@rm -f worker addjob
+
 check: test fmtcheck vet
 
 mibs:
