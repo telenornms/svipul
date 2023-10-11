@@ -499,8 +499,10 @@ func (e *Engine) Listener(c chan Order, name string) {
 }
 
 func main() {
+	var amqpUrl string
 	flag.BoolVar(&svipul.Config.Debug, "debug", false, "enable debug")
 	flag.IntVar(&svipul.Config.Workers, "workers", 10, "number of workers to run in parallell")
+	flag.StringVar(&amqpUrl, "broker", "amqp://guest:guest@localhost:5672/", "AMQP broker-url to connect to")
 	flag.Parse()
 	svipul.Init()
 	e := Engine{}
@@ -515,7 +517,7 @@ func main() {
 	}
 	svipul.Logf("Started %d workers", svipul.Config.Workers)
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(amqpUrl)
 	if err != nil {
 		svipul.Fatalf("can't connect to broker: %s", err)
 	}

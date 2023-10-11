@@ -14,9 +14,11 @@ import (
 var sleeptime = flag.Duration("sleep", -time.Second, "sleep between iterations, negative value means only one execution")
 var delay = flag.Duration("delay", -time.Second, "delay between individual orders, negative value means only one execution")
 var expire = flag.Duration("ttl", 30*time.Second, "expiry time. Minimum: 1ms")
+var amqpUrl = flag.String("broker", "amqp://guest:guest@localhost:5672/", "AMQP broker-url to connect to")
 
 func main() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	flag.Parse()
+	conn, err := amqp.Dial(*amqpUrl)
 	if err != nil {
 		svipul.Fatalf("failed to connect to rabbitMQ: %s", err)
 	}
