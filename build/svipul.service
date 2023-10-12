@@ -1,0 +1,19 @@
+# Use overrides in /etc/systemd/system/svipul.service.d/foo.conf to
+# override this.
+[Unit]
+Description=Svipul metric machine
+Documentation=man:svipul(1) https://github.com/telenornms/svipul
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/svipul
+Restart=on-failure
+User=svipul
+Group=svipul
+NoNewPrivileges=true
+LimitNOFILE=31337
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
