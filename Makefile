@@ -10,23 +10,32 @@ VERSION_NO=$(shell echo ${GIT_DESCRIBE} | sed s/[v-]//g)
 OS:=$(shell uname -s | tr A-Z a-z)
 ARCH:=$(shell uname -m)
 
-all: worker addjob
+binaries: svipul-snmp svipul-addjob
 
-worker: $(wildcard *.go */*.go */*/*.go go.mod)
+all: binaries svipul-snmp.1 svipul-addjob.1
+
+svipul-snmp: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build !
-	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o worker ./cmd/worker
+	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o svipul-snmp ./cmd/svipul-snmp
 
-addjob: $(wildcard *.go */*.go */*/*.go go.mod)
+svipul-addjob: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build addjobb !
-	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o addjob ./cmd/addjob
+	@go build -ldflags "-X main.versionNo=${VERSION_NO}" -o svipul-addjob ./cmd/svipul-addjob
+
+%.1: docs/man/%.rst
+	@echo 🎢 Generating man-file $@
+	@rst2man < $< > $@
 
 notes: docs/NEWS
 	@echo ⛲ Extracting release notes.
 	@./build/release-notes.sh $$(echo ${GIT_DESCRIBE} | sed s/-dirty//) > notes
 
-install: worker
+install: svipul-snmp svipul-addjob
 	@echo 🙅 Installing
-	@install -D -m 0755 worker ${DESTDIR}${PREFIX}/bin/svipul
+	@install -D -m 0755 svipul-snmp ${DESTDIR}${PREFIX}/bin/svipul-snmp
+	@install -D -m 0755 svipul-addjob ${DESTDIR}${PREFIX}/bin/svipul-addjob
+	@install -D -m 0644 svipul-snmp.1 ${DESTDIR}${PREFIX}/share/man/man1/svipul-snmp.1
+	@install -D -m 0644 svipul-addjob.1 ${DESTDIR}${PREFIX}/share/man/man1/svipul-addjob.1
 	@install -D -m 0644 skogul/default.json ${DESTDIR}/etc/svipul/output.d/default.json
 	@cd docs; \
 	find . -type f -exec install -D -m 0644 {} ${DESTDIR}${DOCDIR}/{} \;
@@ -39,7 +48,7 @@ build/redhat-svipul.spec: build/redhat-svipul.spec.in FORCE
 
 rpm: build/redhat-svipul.spec
 	@echo 🎇 Triggering huge-as-heck rpm build
-	@mkdir -p rpm-prep/BUILDROOOT
+	@mkdir -p rpm-prep/BUILDROOT
 	@DEFAULT_UNIT_DIR=/usr/lib/systemd/system ;\
 	RPM_UNIT_DIR=$$(rpm --eval $%{_unitdir}) ;\
 	if [ "$${RPM_UNIT_DIR}" = "$%{_unitdir}" ]; then \
@@ -65,7 +74,8 @@ rpm: build/redhat-svipul.spec
 	@echo ⭐ RPM built: ./svipul-${VERSION_NO}-1.x86_64.rpm
 
 clean:
-	@rm -f worker addjob
+	@rm -f svipul-snmp svipul-addjob
+	@rm -f svipul-snmp.1 svipul-addjob.1
 
 check: test fmtcheck vet
 

@@ -1,5 +1,7 @@
 .*swp
-/worker
+/svipul-snmp
+/svipul-addjob
+/svipul-snmp.1
+/svipul-addjob.1
 /debug-file
-/addjob
 /coverage.out

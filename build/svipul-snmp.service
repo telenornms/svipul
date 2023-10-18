@@ -1,12 +1,12 @@
-# Use overrides in /etc/systemd/system/svipul.service.d/foo.conf to
+# Use overrides in /etc/systemd/system/svipul-snmp.service.d/foo.conf to
 # override this.
 [Unit]
-Description=Svipul metric machine
+Description=Svipul SNMP poller
 Documentation=man:svipul(1) https://github.com/telenornms/svipul
 After=network-online.target
 
 [Service]
-ExecStart=/usr/bin/svipul
+ExecStart=/usr/bin/svipul-snmp
 Restart=on-failure
 User=svipul
 Group=svipul
