@@ -23,6 +23,26 @@ The SNMP worker uses Skogul (https://github.com/telenornms/skogul) to
 transmit the results. Skogul supports a large number of different protocols
 and transformations, making Svipul storage-agnostic.
 
+Testing
+-------
+
+Install go, make and RabbitMQ.
+
+Run ``make`` (or ``make install``).
+
+Start rabbitmq, and ``./svipul-snmp``.
+
+Test stuff with ``./svipul-addjob docs/examples/orders/...`` (or make your
+own order).
+
+The default binary uses localhost and guest:guest for authentication of
+rabbitmq, but this can be configured.
+
+To do something reasonable with the output, you can configure the
+skogul-part. See skogul's documentation for details. Svipul works by using
+the skogul handler named "svipul", and otherwise uses everything you can do
+with Skogul (except set up other receivers, because why would you?).
+
 Current feature-set and stability
 ---------------------------------
 
