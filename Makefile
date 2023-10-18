@@ -12,7 +12,9 @@ ARCH:=$(shell uname -m)
 
 binaries: svipul-snmp svipul-addjob
 
-all: binaries svipul-snmp.1 svipul-addjob.1
+man: svipul-snmp.1 svipul-addjob.1
+
+all: binaries man
 
 svipul-snmp: $(wildcard *.go */*.go */*/*.go go.mod)
 	@echo 🤸 go build !
@@ -74,6 +76,7 @@ rpm: build/redhat-svipul.spec
 	@echo ⭐ RPM built: ./svipul-${VERSION_NO}-1.x86_64.rpm
 
 clean:
+	@echo 💩Cleaning up
 	@rm -f svipul-snmp svipul-addjob
 	@rm -f svipul-snmp.1 svipul-addjob.1
 
