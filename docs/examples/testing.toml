@@ -20,7 +20,7 @@ Debug=true
 
 # OutputConfig	 string, directory (or file) containing skogul-config to
 # use for the output.
-OutputConfig="skogul"
+OutputConfig="docs/examples/output"
 
 # MaxMapAge        time.Duration, how long maps are cached
 MaxMapAge="5m"

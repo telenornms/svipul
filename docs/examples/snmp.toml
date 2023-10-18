@@ -7,21 +7,24 @@
 # DefaultCommunity=public
 
 # Workers          int, number of parallel workers/threads
-# Workers=10
+#Workers=10
 
 # Debug            bool, enable more debug output
-# Debug=false
+#Debug=false
+
+# Broker		 string, the url for the AMQP/RabbitMQ queue
+#Broker="amqp://guest:guest@localhost:5672/"
 
 # MibPaths         []string, list of paths where to look for mibs.
-# MibPaths=["mibs/modules"]
+#MibPaths=["mibs/modules"]
 
 # MibModules       []string, list of individual modules to load
-# MibModules = ["LONG LIST OF DEFAULT MIBS"]
+#MibModules = ["LONG LIST OF DEFAULT MIBS"]
 
 # OutputConfig	 string, directory (or file) containing skogul-config to
 # use for the output.
-# OutputConfig="/etc/svipul/output.d/"
+#OutputConfig="/etc/svipul/output.d/"
 
 # MaxMapAge        time.Duration, how long maps are cached
-# MaxMapAge="1h"
+#MaxMapAge="1h"
 

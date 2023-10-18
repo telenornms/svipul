@@ -37,14 +37,8 @@ OPTIONS
 -f string
         configuration file to read (default: "/etc/svipul/snmp.toml")
 
--broker string
-  	AMQP broker-url to connect to (default "amqp://guest:guest@localhost:5672/")
-
 -debug
   	enable debug
-
--workers int
-  	number of workers to run in parallell (default 10)
 
 SEE ALSO
 ========

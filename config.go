@@ -26,7 +26,6 @@ package svipul
 import (
 	"time"
 	"fmt"
-	"io/ioutil"
 	"github.com/BurntSushi/toml"
 )
 
@@ -37,14 +36,17 @@ type conf struct {
 	MibPaths         []string
 	MibModules       []string
 	OutputConfig	 string
+	Broker		 string
 	MaxMapAge        time.Duration
 }
 
 var Config conf = conf{
 	DefaultCommunity: "public",
+	Workers:	  10,
 	Debug:            false,
 	MibPaths:         []string{"mibs/modules"},
 	MaxMapAge:        time.Second * 3600,
+	Broker:		  "amqp://guest:guest@localhost:5672/",
 	OutputConfig:     "/etc/svipul/output.d/",
 	MibModules: []string{
 		"ADSL-LINE-MIB",
@@ -148,11 +150,10 @@ var Config conf = conf{
 
 
 func ParseConfig(f string) error {
-	dat, err := ioutil.ReadFile(f)
+
+	_, err := toml.DecodeFile(f, &Config)
 	if err != nil {
 		return fmt.Errorf("failed to read configuration file: %w", err)
 	}
-	_, err = toml.Decode(string(dat), &Config)
-
-	return err
+	return nil
 }
