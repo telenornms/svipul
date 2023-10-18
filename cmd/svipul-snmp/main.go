@@ -500,13 +500,19 @@ func (e *Engine) Listener(c chan Order, name string) {
 
 func main() {
 	var amqpUrl string
+	var configFile string
 	flag.BoolVar(&svipul.Config.Debug, "debug", false, "enable debug")
 	flag.IntVar(&svipul.Config.Workers, "workers", 10, "number of workers to run in parallell")
 	flag.StringVar(&amqpUrl, "broker", "amqp://guest:guest@localhost:5672/", "AMQP broker-url to connect to")
+	flag.StringVar(&configFile, "f", "/etc/svipul/snmp.toml", "snmp config file")
 	flag.Parse()
+	if err := svipul.ParseConfig(configFile); err != nil {
+		svipul.Fatalf("Couldn't parse config: %s", err)
+	}
+	svipul.Debugf("Read config file: %s", configFile)
 	svipul.Init()
 	e := Engine{}
-	err := e.Init("skogul")
+	err := e.Init(svipul.Config.OutputConfig)
 	if err != nil {
 		svipul.Fatalf("Couldn't initialize engine: %s", err)
 	}

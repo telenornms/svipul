@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/alecthomas/participle v0.4.1 // indirect
 	github.com/dolmen-go/jsonptr v0.0.0-20220904212016-e3f38a361346 // indirect
 	github.com/eclipse/paho.mqtt.golang v1.4.1 // indirect

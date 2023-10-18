@@ -25,6 +25,9 @@ package svipul
 
 import (
 	"time"
+	"fmt"
+	"io/ioutil"
+	"github.com/BurntSushi/toml"
 )
 
 type conf struct {
@@ -33,6 +36,7 @@ type conf struct {
 	Debug            bool
 	MibPaths         []string
 	MibModules       []string
+	OutputConfig	 string
 	MaxMapAge        time.Duration
 }
 
@@ -41,6 +45,7 @@ var Config conf = conf{
 	Debug:            false,
 	MibPaths:         []string{"mibs/modules"},
 	MaxMapAge:        time.Second * 3600,
+	OutputConfig:     "/etc/svipul/output.d/",
 	MibModules: []string{
 		"ADSL-LINE-MIB",
 		"ADSL-TC-MIB",
@@ -139,4 +144,15 @@ var Config conf = conf{
 		"VPN-TC-STD-MIB",
 		"VRRP-MIB",
 		"VRRPV3-MIB"},
+}
+
+
+func ParseConfig(f string) error {
+	dat, err := ioutil.ReadFile(f)
+	if err != nil {
+		return fmt.Errorf("failed to read configuration file: %w", err)
+	}
+	_, err = toml.Decode(string(dat), &Config)
+
+	return err
 }

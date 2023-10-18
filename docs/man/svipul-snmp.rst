@@ -34,6 +34,9 @@ It is in heavy development. Expect significant changes.
 OPTIONS
 =======
 
+-f string
+        configuration file to read (default: "/etc/svipul/snmp.toml")
+
 -broker string
   	AMQP broker-url to connect to (default "amqp://guest:guest@localhost:5672/")
 

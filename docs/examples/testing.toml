@@ -1,0 +1,27 @@
+# Svipul SNMP config, example used during testing/development
+# This is still a bit rudimentary, but should work.
+
+# DefaultCommunity string, used as SNMP community when order doesn't
+# contain a community
+#	
+# DefaultCommunity=public
+
+# Workers          int, number of parallel workers/threads
+# Workers=10
+
+# Debug            bool, enable more debug output
+Debug=true
+
+# MibPaths         []string, list of paths where to look for mibs.
+# MibPaths=["mibs/modules"]
+
+# MibModules       []string, list of individual modules to load
+# MibModules = ["LONG LIST OF DEFAULT MIBS"]
+
+# OutputConfig	 string, directory (or file) containing skogul-config to
+# use for the output.
+OutputConfig="skogul"
+
+# MaxMapAge        time.Duration, how long maps are cached
+MaxMapAge="5m"
+
