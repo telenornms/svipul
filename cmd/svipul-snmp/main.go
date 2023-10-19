@@ -31,6 +31,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -519,7 +520,11 @@ func main() {
 		time.Sleep(time.Microsecond * 20)
 	}
 	svipul.Logf("Started %d workers", svipul.Config.Workers)
-	svipul.Debugf("Connecting to broker: %s", svipul.Config.Broker)
+	amUrl, err := url.Parse(svipul.Config.Broker)
+	if err != nil {
+		svipul.Fatalf("Can't parse broker url: %s", err)
+	}
+	svipul.Debugf("Connecting to broker: %v", amUrl.Redacted())
 	conn, err := amqp.Dial(svipul.Config.Broker)
 	if err != nil {
 		svipul.Fatalf("can't connect to broker: %s", err)
