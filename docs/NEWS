@@ -1,3 +1,23 @@
+v0.1.1
+======
+
+Release date: 2023-10-19
+
+Significant steps towards production-quality, mainly in build, packaging
+and configuration.
+
+- Introduces RPM packaging, not well tested yet
+- Renames binaries to svipul-snmp and svipul-addjob
+- Introduces toml-based configuration file
+- Broker URL is configurable now
+- Add manual files
+
+Still a lot of things missing. Adding github issues for things I remember
+as I remember them, so feel free to take a look there.
+
+Next up is figuring out how to reasonably deal with SNMP mib files and
+packaging.
+
 v0.1.0
 ======
 
