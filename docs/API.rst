@@ -443,4 +443,46 @@ In this case, the first request took 90ms, because it built a cache first
 entries. But subsequent requests took 20-30ms. This speed-up is far more
 prominent in network hardware.
 
+BuildMap
+--------
+
+Parameters used: `Target`, `Community`, `Key`
+
+BuildMap explicitly builds and caches a map for later use, e.g., ifName
+<->index.
+
+Example::
+
+        {
+                "target": "vm-lol2",
+                "mode": "BuildMap",
+                "key": "ifName"
+        }
+
+There is no result, but the map is cached, to be used by GetElements later.
+
+Note that this is NOT required - if no map exists when GetElements is
+called, it will be built (and cached) on demand!
+
+FIXME: Future versions will include explicit TTL support. For now, things
+are cached for an hour, configurable on startup.
+
+ClearMap
+--------
+
+Parameters used: `Target`, `Community`, `Key`
+
+Explicitly clears the map cache for a target/key combination. The opposite
+of what BuildMap does.
+
+Example::
+
+        {
+                "target": "vm-lol2",
+                "mode": "ClearMap",
+                "key": "ifName"
+        }
+
+Not required for regular use since things will automatically time out, and
+issuing BuildMap will always update the cache.
 
